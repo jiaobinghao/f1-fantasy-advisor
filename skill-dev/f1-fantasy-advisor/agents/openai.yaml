@@ -1,0 +1,4 @@
+interface:
+  display_name: "F1 Fantasy Advisor"
+  short_description: "Maintain F1 Fantasy data and strategy"
+  default_prompt: "帮我开始fantasy指导"
