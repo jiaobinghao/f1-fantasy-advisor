@@ -1,5 +1,7 @@
 # F1 Fantasy Advisor
 
+[Chinese README](README.zh-CN.md)
+
 F1 Fantasy Advisor is a Codex skill for maintaining Formula 1 Fantasy data and
 turning it into practical race-week advice. It fetches public F1 Fantasy data,
 tracks driver and constructor price movement, and helps evaluate lineups, chips,
@@ -8,7 +10,7 @@ budget-building paths, and split-team strategy.
 Start with this prompt:
 
 ```text
-帮我开始fantasy指导
+Help me start F1 Fantasy guidance.
 ```
 
 ## What This Skill Does
@@ -75,7 +77,7 @@ python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_state.py init-data --data-d
 When the user says:
 
 ```text
-帮我开始fantasy指导
+Help me start F1 Fantasy guidance.
 ```
 
 the assistant should:
@@ -89,15 +91,15 @@ the assistant should:
 Expected first assistant response shape:
 
 ```text
-我会先抓取公开 F1 Fantasy 数据来初始化车手/车队状态；你不需要提供前两站分数。
+I will first fetch public F1 Fantasy data to initialize driver and constructor state. You do not need to provide previous race scores.
 
-我还需要这些私有队伍信息：
-- 你要管理哪些 team
-- 每个 team 当前剩余 budget / cost cap
-- 当前 5 位车手、2 个车队、boosted driver
-- 已使用和当前激活的 chips
-- 本周是否已有 transfer penalty
-- league 目标：保守爬预算、冲分、还是分队覆盖风险
+I still need these private team details:
+- Which teams you want to manage
+- Each team's current remaining budget or cost cap
+- Current 5 drivers, 2 constructors, and boosted driver
+- Chips already used and any currently active chip
+- Whether you have taken any transfer penalty this race week
+- League objective: budget growth, points ceiling, or split-team risk coverage
 ```
 
 Private information to ask for:
