@@ -99,6 +99,9 @@ data/imports/official/gameday_score_breakdown.csv
 data/imports/official/gamedays.csv
 ```
 
+`data/` is local private state and should be ignored by Git. Commit reusable
+headers or examples under `data-templates/` instead.
+
 Use `current_assets.csv` to build or refresh `data/assets_state.csv`.
 Use `assets_state_snapshot.csv` as a ready-to-copy initial
 `data/assets_state.csv` shape when onboarding mid-season after a race week has
@@ -167,3 +170,17 @@ Mitigations:
   week without reviewing whether the latest gameday is final.
 - Do not use login credentials, bearer tokens, or private cookies unless the
   user explicitly starts a separate authenticated-data exploration.
+
+## External References
+
+Treat third-party F1 Fantasy projects as endpoint maps and test references, not
+as default runtime dependencies.
+
+- `zeroclutch/f1-fantasy-api`: Node client for an older F1 Fantasy API shape;
+  useful for historical endpoint naming, but do not depend on it for current
+  public-feed syncing.
+- `subinium/awesome-f1`: Curated index with F1 Fantasy API docs, endpoint cheat
+  sheets, F1 Fantasy Tools, and Pitwall-style optimizers.
+- `dltHub F1 Fantasy Python API Docs`: Useful when separately exploring
+  authenticated private/account APIs. Keep that separate from this public-feed
+  workflow because it requires login/session handling.

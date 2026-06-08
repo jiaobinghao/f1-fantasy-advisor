@@ -7,6 +7,5 @@ now.md
 LOCAL_WORKING_NOTES.md
 *.png
 
-# Generated public feed snapshots
-data/imports/official/
-
+# Local fantasy state and fetched data
+data/

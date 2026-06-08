@@ -10,22 +10,26 @@ description: Maintain and analyze F1 Fantasy data for race-week preparation. Use
 Use the user's fantasy workspace as the source of truth. Read `README.md`,
 `data/assets_state.csv`, `data/race_scores.csv`, and `data/team_state.csv`
 before giving lineup or chip advice. If `now.md` exists, treat it as local
-private working notes and read it for user-specific team context.
+private working notes and read it for user-specific team context. `data/` is
+local private state and should stay ignored by Git; committed CSV templates live
+in `data-templates/`.
 
 ## Startup Prompt
 
 When the user says `帮我开始fantasy指导`:
 
 1. Inspect the workspace CSVs.
-2. If `data/assets_state.csv` is empty, fetch public F1 Fantasy data with
+2. If the local `data/` CSVs are missing, initialize them with
+   `scripts/fantasy_state.py init-data --data-dir data`.
+3. If `data/assets_state.csv` is empty, fetch public F1 Fantasy data with
    `scripts/fetch_fantasy_public.py --out-dir data/imports/official`.
-3. Use `data/imports/official/assets_state_snapshot.csv` as the public initial
+4. Use `data/imports/official/assets_state_snapshot.csv` as the public initial
    asset state. Do not ask the user for the previous two race scores; they are
    available from public per-asset history.
-4. Ask only for private account state that public feeds cannot provide:
+5. Ask only for private account state that public feeds cannot provide:
    current team lineup, remaining budget/cost cap, used chips, active chip,
    boosted driver, transfer penalties, and league/risk objective.
-5. If network access is unavailable, explain that public data fetch is blocked
+6. If network access is unavailable, explain that public data fetch is blocked
    and fall back to screenshots or CSVs.
 
 For post-race updates:

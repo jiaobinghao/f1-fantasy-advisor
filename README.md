@@ -71,6 +71,10 @@ Requirements:
 - Network access to `fantasy.formula1.com`
 - No third-party Python packages are required
 
+Local fantasy state lives in `data/`. That directory is ignored by Git because
+it can contain your real teams, budgets, chips, and fetched race-week data.
+Committed CSV headers live in `data-templates/`.
+
 Fetch public fantasy data:
 
 ```bash
