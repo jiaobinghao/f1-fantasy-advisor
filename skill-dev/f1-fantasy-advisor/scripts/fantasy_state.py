@@ -38,10 +38,14 @@ TEAM_COLUMNS = [
     "round",
     "team_id",
     "budget_before",
+    "budget_after",
+    "total_fpoints",
+    "transfer_penalty",
     "chip",
     "lineup_asset_ids",
     "boost_asset_id",
     "shadow_lineup_asset_ids",
+    "notes",
 ]
 
 IMPORT_TOTAL_COLUMNS = ["asset_id", "name", "total_fpoints"]
@@ -314,6 +318,20 @@ def replace_round_scores(data_dir: Path, round_name: str, results: list[RaceResu
     write_csv(path, RACE_SCORE_COLUMNS, kept + race_result_rows(results))
 
 
+def replace_team_state(data_dir: Path, row: dict[str, str]) -> None:
+    path = data_dir / "team_state.csv"
+    existing = read_csv(path) if path.exists() else []
+    kept = [
+        existing_row
+        for existing_row in existing
+        if not (
+            existing_row.get("round") == row["round"]
+            and existing_row.get("team_id") == row["team_id"]
+        )
+    ]
+    write_csv(path, TEAM_COLUMNS, kept + [row])
+
+
 def load_round_scores(data_dir: Path, round_name: str) -> dict[str, Decimal]:
     rows = read_csv(data_dir / "race_scores.csv")
     changes: dict[str, Decimal] = {}
@@ -449,6 +467,45 @@ def cmd_update_round(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_record_team(args: argparse.Namespace) -> int:
+    ensure_headers(args.data_dir)
+    if not args.lineup:
+        raise ValueError("record-team requires --lineup with 5 driver ids and 2 constructor ids")
+    lineup_asset_ids = ",".join(split_ids(args.lineup))
+    if len(split_ids(lineup_asset_ids)) != 7:
+        raise ValueError("--lineup must contain exactly 7 asset ids: 5 drivers and 2 constructors")
+    shadow_lineup = ",".join(split_ids(args.shadow_lineup or ""))
+    if args.chip.strip().lower() == "limitless" and not shadow_lineup:
+        raise ValueError("chip=Limitless requires --shadow-lineup for budget impact tracking")
+
+    row = {
+        "round": args.round,
+        "team_id": args.team_id,
+        "budget_before": fmt_decimal(decimal_value(args.budget_before, "budget_before"))
+        if args.budget_before
+        else "",
+        "budget_after": fmt_decimal(decimal_value(args.budget_after, "budget_after"))
+        if args.budget_after
+        else "",
+        "total_fpoints": fmt_decimal(decimal_value(args.total_fpoints, "total_fpoints"))
+        if args.total_fpoints
+        else "",
+        "transfer_penalty": fmt_decimal(
+            decimal_value(args.transfer_penalty, "transfer_penalty")
+        )
+        if args.transfer_penalty
+        else "0",
+        "chip": args.chip,
+        "lineup_asset_ids": lineup_asset_ids,
+        "boost_asset_id": args.boost_asset_id,
+        "shadow_lineup_asset_ids": shadow_lineup,
+        "notes": args.notes,
+    }
+    replace_team_state(args.data_dir, row)
+    print(f"Recorded {args.team_id} for {args.round} in {args.data_dir / 'team_state.csv'}")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     rows = [row for row in read_csv(args.data_dir / "race_scores.csv") if row.get("round") == args.round]
     if not rows:
@@ -500,6 +557,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     update_parser.add_argument("--apply", action="store_true", help="Update assets_state.csv and race_scores.csv")
     update_parser.set_defaults(func=cmd_update_round)
+
+    team_parser = subparsers.add_parser(
+        "record-team", help="Record one team's private race-week state"
+    )
+    team_parser.add_argument("--data-dir", type=Path, default=Path("data"))
+    team_parser.add_argument("--round", required=True, help="Round name, e.g. Spain")
+    team_parser.add_argument("--team-id", required=True, help="Team label, e.g. Team1")
+    team_parser.add_argument(
+        "--lineup",
+        required=True,
+        help="Seven asset ids: 5 drivers and 2 constructors, comma-separated",
+    )
+    team_parser.add_argument("--boost-asset-id", default="", help="2x/3x boosted driver asset id")
+    team_parser.add_argument("--budget-before", default="", help="Remaining budget before lock")
+    team_parser.add_argument("--budget-after", default="", help="Remaining budget after race settles")
+    team_parser.add_argument("--total-fpoints", default="", help="Team total points for the round")
+    team_parser.add_argument("--transfer-penalty", default="0", help="Transfer penalty for the round")
+    team_parser.add_argument("--chip", default="", help="Active chip for the round")
+    team_parser.add_argument(
+        "--shadow-lineup",
+        default="",
+        help="Underlying 7 asset ids when chip=Limitless",
+    )
+    team_parser.add_argument("--notes", default="")
+    team_parser.set_defaults(func=cmd_record_team)
 
     report_parser = subparsers.add_parser("report", help="Print an existing round report")
     report_parser.add_argument("--data-dir", type=Path, default=Path("data"))

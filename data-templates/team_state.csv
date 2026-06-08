@@ -1,1 +1,1 @@
-round,team_id,budget_before,chip,lineup_asset_ids,boost_asset_id,shadow_lineup_asset_ids
+round,team_id,budget_before,budget_after,total_fpoints,transfer_penalty,chip,lineup_asset_ids,boost_asset_id,shadow_lineup_asset_ids,notes

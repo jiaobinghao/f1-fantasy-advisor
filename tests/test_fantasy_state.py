@@ -178,10 +178,14 @@ class FantasyStateTests(unittest.TestCase):
                         "round": "Fixture",
                         "team_id": "Team3",
                         "budget_before": "100.0",
+                        "budget_after": "",
+                        "total_fpoints": "",
+                        "transfer_penalty": "0",
                         "chip": "Limitless",
                         "lineup_asset_ids": "limitless_a,limitless_b",
                         "boost_asset_id": "limitless_a",
                         "shadow_lineup_asset_ids": "shadow_a",
+                        "notes": "",
                     }
                 ],
             )
@@ -192,6 +196,63 @@ class FantasyStateTests(unittest.TestCase):
             self.assertIn("shadow_lineup_asset_ids", lines[0])
             self.assertIn("budget change -0.3M", lines[0])
             self.assertIn("estimated budget after 99.7M", lines[0])
+
+    def test_record_team_replaces_round_team_row(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp) / "data"
+            fantasy_state.ensure_headers(data_dir)
+
+            rc = fantasy_state.main(
+                [
+                    "record-team",
+                    "--data-dir",
+                    str(data_dir),
+                    "--round",
+                    "Spain",
+                    "--team-id",
+                    "Team1",
+                    "--lineup",
+                    "drv1,drv2,drv3,drv4,drv5,con1,con2",
+                    "--boost-asset-id",
+                    "drv1",
+                    "--budget-before",
+                    "4.7",
+                    "--transfer-penalty",
+                    "-10",
+                    "--chip",
+                    "No Negative",
+                    "--notes",
+                    "initial record",
+                ]
+            )
+            self.assertEqual(rc, 0)
+
+            rc = fantasy_state.main(
+                [
+                    "record-team",
+                    "--data-dir",
+                    str(data_dir),
+                    "--round",
+                    "Spain",
+                    "--team-id",
+                    "Team1",
+                    "--lineup",
+                    "drv1,drv2,drv3,drv4,drv5,con1,con2",
+                    "--boost-asset-id",
+                    "drv2",
+                    "--budget-before",
+                    "5.1",
+                ]
+            )
+            self.assertEqual(rc, 0)
+
+            rows = fantasy_state.read_csv(data_dir / "team_state.csv")
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["round"], "Spain")
+            self.assertEqual(rows[0]["team_id"], "Team1")
+            self.assertEqual(rows[0]["budget_before"], "5.1")
+            self.assertEqual(rows[0]["boost_asset_id"], "drv2")
+            self.assertEqual(rows[0]["transfer_penalty"], "0")
 
 
 if __name__ == "__main__":

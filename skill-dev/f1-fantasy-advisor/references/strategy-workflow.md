@@ -9,9 +9,16 @@ Before recommending transfers or chips, refresh:
 - Weather and safety-car risk.
 - Fantasy data from public feeds via `references/public-data-access.md`, then
   `data/assets_state.csv`, `data/race_scores.csv`, and `data/team_state.csv`.
+  For target-round price risk, read `data/official/official_asset_rankings.csv`
+  as a narrow sorted view. Lower `score_floor` is better.
 
 If the public feed fails, ask for fallback screenshots or CSVs containing asset
 name, current price, total fPoints, and price movement.
+
+For private account state, ask beginner-friendly questions and record the
+answers in `data/team_state.csv` with `scripts/fantasy_state.py record-team`.
+Do not depend on `now.md` or conversation memory for lineup, budget, chips, or
+transfer penalties.
 
 ## Team Strategy
 
@@ -28,6 +35,10 @@ expected fantasy points
 - reliability / penalty / weather risk
 - chip opportunity cost
 ```
+
+Do not describe a price rise as locked solely because a `score_floor_*` is
+negative. A negative floor is only room for a negative race-week score; a DNF or
+penalty can still fall below that floor.
 
 Use split strategies when one race-week thesis can be directly punished by a
 single failure mode. The Monaco example used Team 1 for budget preservation and

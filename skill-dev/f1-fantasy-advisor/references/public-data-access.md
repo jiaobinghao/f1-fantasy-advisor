@@ -8,19 +8,19 @@ These feeds do not require login credentials.
 From the fantasy workspace:
 
 ```bash
-python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/imports/official
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official
 ```
 
 For a quick current-price/current-total refresh only:
 
 ```bash
-python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/imports/official --skip-history
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official --skip-history
 ```
 
 For endpoint testing with a small sample:
 
 ```bash
-python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/imports/official --asset-id 11161 --asset-id 28
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official --asset-id 11161 --asset-id 28
 ```
 
 ## Public Endpoints
@@ -82,33 +82,68 @@ Per-round values:
 
 ```text
 race_fpoints = StatsWise item where Event == "Total"
-price_change = PlayerValue - OldPlayerValue
-current_price = latest PlayerValue, or common statistics curvalue
+price_before = this gameday PlayerValue
+price_after = next gameday PlayerValue, or current common-statistics curvalue
+price_change = price_after - price_before
+current_price = common statistics curvalue
 season_total = common statistics statvalue
 ```
 
+Treat `GamedayWiseStats[].PlayerValue` as the price entering that gameday. For
+the latest completed pre-target gameday, the next visible price is the current
+common-statistics `curvalue`. Do not use `OldPlayerValue` as the routine settled
+price-change source: low-price floor/cap behavior can make that field differ
+from the actual visible price movement.
+
 ## Generated CSVs
 
-`fetch_fantasy_public.py` writes:
+By default, `fetch_fantasy_public.py` writes only the v3 official team-selection
+CSVs:
 
 ```text
-data/imports/official/current_assets.csv
-data/imports/official/assets_state_snapshot.csv
-data/imports/official/gameday_scores.csv
-data/imports/official/gameday_score_breakdown.csv
-data/imports/official/gamedays.csv
+data/official/official_round_context.csv
+data/official/official_asset_metrics.csv
+data/official/official_asset_rankings.csv
 ```
 
 `data/` is local private state and should be ignored by Git. Commit reusable
 headers or examples under `data-templates/` instead.
 
-Use `current_assets.csv` to build or refresh `data/assets_state.csv`.
-Use `assets_state_snapshot.csv` as a ready-to-copy initial
-`data/assets_state.csv` shape when onboarding mid-season after a race week has
-settled. The snapshot excludes incomplete gamedays by default.
-Use `gameday_scores.csv` to backfill any missed race week without screenshots.
-Use `gameday_score_breakdown.csv` when a driver or constructor score needs an
-event-level explanation.
+Use `official_asset_metrics.csv` for current price, current total fPoints, the
+last two completed pre-target gameday entry prices and scores, official settled
+price changes, and target-round price-zone floors. To initialize
+`data/assets_state.csv`,
+map `last2_fpoints` to `previous_race_fpoints` and `last1_fpoints` to
+`last_race_fpoints`.
+
+Use `official_asset_rankings.csv` only as a narrow sorted index derived from
+`official_asset_metrics.csv`. It does not repeat current price, current total
+fPoints, or rolling scores. Lower `score_floor` is better for each
+`ranking_metric`.
+
+Use `official_round_context.csv` to confirm which gameday is the target and
+whether that gameday is already complete.
+
+`--skip-history` writes only `current_assets.csv` for a quick current-price and
+current-total refresh. Score breakdowns are not part of the routine CSV output;
+query per-asset history temporarily when an event-level explanation is needed.
+
+Official v3 schemas:
+
+```text
+official_round_context.csv
+target_round_id,season,gameday_id,meeting_name,country,circuit,is_complete,session_types,first_session_start,last_session_start,fetched_at
+```
+
+```text
+official_asset_metrics.csv
+target_round_id,asset_id,type,name,current_price,last1_price,last2_price,current_total_fpoints,rank,last1_round_id,last1_fpoints,last1_price_change,last2_round_id,last2_fpoints,last2_price_change,rolling2_fpoints,score_floor_big_rise,score_floor_small_rise,score_floor_avoid_big_fall,is_active,fetched_at
+```
+
+```text
+official_asset_rankings.csv
+target_round_id,type,ranking_metric,metric_rank,asset_id,name,score_floor,value_note
+```
 
 ## Live Race-Week Data
 
@@ -127,12 +162,11 @@ If any session in the gameday is not `"4"`, treat that gameday as incomplete.
 `fetch_fantasy_public.py` marks this in:
 
 ```text
-gameday_scores.csv:is_gameday_complete
-gamedays.csv:is_complete
+official_round_context.csv:is_complete
 ```
 
-`assets_state_snapshot.csv` uses only complete gamedays for
-`previous_race_fpoints` and `last_race_fpoints`.
+`official_asset_metrics.csv` uses only complete gamedays before the target round
+for `last1_fpoints`, `last2_fpoints`, and `rolling2_fpoints`.
 
 ## Screenshot Policy
 
@@ -162,7 +196,7 @@ guaranteed long-term API contract.
 Mitigations:
 
 - Always resolve `tourId` and the statistics endpoint from `web_config.json`.
-- Keep CSV snapshots under `data/imports/official` after each fetch, so old
+- Keep CSV snapshots under `data/official` after each fetch, so old
   race-week data is preserved if the feed changes later.
 - Keep screenshot/CSV import as a fallback path.
 - Do not hardcode season-specific IDs except in tests or sample commands.

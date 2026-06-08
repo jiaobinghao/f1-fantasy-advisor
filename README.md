@@ -31,6 +31,9 @@ to provide:
 - Your league objective: budget growth, points ceiling, safer play, or
   split-team risk coverage
 
+The advisor records this private race-week state in local CSV files under
+`data/`, so you do not need to repeat the same information every session.
+
 ## What The Advisor Can Help With
 
 - Race-week lineup and transfer decisions
@@ -49,7 +52,7 @@ The advisor uses public first-party F1 Fantasy feeds to fetch:
 - Current total fantasy points
 - Per-race fantasy points
 - Per-race price movement
-- Score breakdowns
+- Target-round price-zone score floors
 - Race-week/session metadata
 
 These feeds do not require your F1 Fantasy login. They are public website feeds,
@@ -78,7 +81,7 @@ Committed CSV headers live in `data-templates/`.
 Fetch public fantasy data:
 
 ```bash
-python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/imports/official
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official
 ```
 
 Initialize local CSV state if needed:
@@ -86,6 +89,15 @@ Initialize local CSV state if needed:
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_state.py init-data --data-dir data
 ```
+
+Record one team's private race-week state:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_state.py record-team --data-dir data --round Spain --team-id Team1 --lineup 11161,13,11051,129,11059,25,28 --boost-asset-id 11161 --budget-before 4.7 --transfer-penalty -10
+```
+
+For beginners, you can give names in chat instead of asset ids; Codex should
+look up the ids from fetched public data and write the CSV for you.
 
 Run tests:
 
