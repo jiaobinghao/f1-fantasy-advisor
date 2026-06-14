@@ -98,3 +98,18 @@ skill-dev/f1-fantasy-advisor/
 ```
 
 `now.md` 用于本地个人工作笔记，已被 Git 忽略。
+
+## 工具说明
+
+# 官方数据收集
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official
+```
+
+# auto-pilot计算
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112
+python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
+```
