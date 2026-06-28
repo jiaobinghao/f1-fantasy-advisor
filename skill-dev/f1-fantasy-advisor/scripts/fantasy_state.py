@@ -54,6 +54,7 @@ EXPENSIVE_CUTOFF = Decimal("18.5")
 AVG_GREAT = Decimal("1.2")
 AVG_GOOD = Decimal("0.9")
 AVG_POOR = Decimal("0.6")
+DRIVER_MIN_PRICE = Decimal("3.0")
 
 
 @dataclass(frozen=True)
@@ -205,7 +206,11 @@ def asset_rows(assets: Iterable[Asset]) -> list[dict[str, str]]:
     ]
 
 
-def price_change_for(current_price: Decimal, rolling_3: Decimal) -> tuple[Decimal, Decimal]:
+def price_change_for(
+    current_price: Decimal,
+    rolling_3: Decimal,
+    asset_type: str | None = None,
+) -> tuple[Decimal, Decimal]:
     if current_price <= 0:
         raise ValueError(f"current_price must be positive, got {current_price}")
     avg_ppm = rolling_3 / Decimal("3") / current_price
@@ -218,6 +223,10 @@ def price_change_for(current_price: Decimal, rolling_3: Decimal) -> tuple[Decima
         change = Decimal("-0.1") if expensive else Decimal("-0.2")
     else:
         change = Decimal("-0.3") if expensive else Decimal("-0.6")
+    if asset_type == "driver":
+        price_after = current_price + change
+        if price_after < DRIVER_MIN_PRICE:
+            change = DRIVER_MIN_PRICE - current_price
     return avg_ppm, change
 
 
@@ -260,7 +269,9 @@ def compute_round(
         new_total = imported_totals[asset.asset_id]
         race_fpoints = new_total - asset.current_total_fpoints
         rolling_3 = asset.previous_race_fpoints + asset.last_race_fpoints + race_fpoints
-        avg_ppm, price_change = price_change_for(asset.current_price, rolling_3)
+        avg_ppm, price_change = price_change_for(
+            asset.current_price, rolling_3, asset.type
+        )
         results.append(
             RaceResult(
                 round=round_name,

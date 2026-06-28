@@ -48,6 +48,24 @@ class FantasyStateTests(unittest.TestCase):
                 )
                 self.assertEqual(change, Decimal(expected_change))
 
+    def test_driver_price_change_is_clamped_at_minimum_price(self):
+        cases = [
+            ("3.0", "0", "0.0"),
+            ("3.3", "0", "-0.3"),
+        ]
+        for price, rolling_3, expected_change in cases:
+            with self.subTest(price=price, rolling_3=rolling_3):
+                _, change = fantasy_state.price_change_for(
+                    Decimal(price), Decimal(rolling_3), "driver"
+                )
+                self.assertEqual(change, Decimal(expected_change))
+
+    def test_constructor_price_change_is_not_clamped_by_driver_minimum(self):
+        _, change = fantasy_state.price_change_for(
+            Decimal("3.0"), Decimal("0"), "constructor"
+        )
+        self.assertEqual(change, Decimal("-0.6"))
+
     def test_update_round_handles_negative_score_and_updates_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             data_dir = Path(tmp) / "data"
