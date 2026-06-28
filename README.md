@@ -55,6 +55,11 @@ The advisor uses public first-party F1 Fantasy feeds to fetch:
 - Target-round price-zone score floors
 - Race-week/session metadata
 
+Price advice must account for the driver floor: driver selling price cannot go
+below `3.0M`. A driver already at `3.0M` cannot lose more budget, but can still
+be a sell candidate because of poor expected points, reliability risk, or
+transfer opportunity cost.
+
 These feeds do not require your F1 Fantasy login. They are public website feeds,
 not a formally documented long-term API, so the project keeps manual CSV or
 screenshot input as a fallback.
@@ -114,3 +119,27 @@ skill-dev/f1-fantasy-advisor/
 ```
 
 `now.md` is for local personal working notes and is ignored by Git.
+
+## Tool Commands
+
+### Official Data Fetch
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official
+```
+
+### Auto-Pilot Calculation
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112
+python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
+```
+
+### Best Lineup From Previous Lineup
+
+Interactively enter last week's 5 drivers, 2 constructors, and remaining
+budget. The script automatically accounts for extra-transfer penalties:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --interactive
+```
