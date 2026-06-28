@@ -40,6 +40,11 @@ Do not describe a price rise as locked solely because a `score_floor_*` is
 negative. A negative floor is only room for a negative race-week score; a DNF or
 penalty can still fall below that floor.
 
+For drivers at the `3.0M` minimum selling price, do not use further price-loss
+risk as a sell argument. They can still be sell candidates for poor expected
+points, reliability risk, bad qualifying position, or because the transfer
+unlocks a materially stronger lineup.
+
 Use split strategies when one race-week thesis can be directly punished by a
 single failure mode. The Monaco example used Team 1 for budget preservation and
 Team 3 for Limitless points ceiling.

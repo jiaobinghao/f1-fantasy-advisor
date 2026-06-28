@@ -68,6 +68,13 @@ Then map the asset to one of four price-change bands:
 | Small fall | `0.6 <= avg_ppm < 0.9` | `-0.1M` | `-0.2M` |
 | Big fall | `avg_ppm < 0.6` | `-0.3M` | `-0.6M` |
 
+Driver selling price is floored at `3.0M`. When the fallback model projects a
+driver price drop below `3.0M`, clamp `price_after` to `3.0M` and report only
+the actual possible price movement. Example: a `3.0M` driver cannot lose more
+budget, and a `3.3M` driver can lose at most `0.3M` even if the tier table would
+otherwise imply a `-0.6M` fall. This floor reduces budget downside only; it does
+not reduce race-week points, DNF, DNS, or transfer-opportunity risk.
+
 Boundary handling:
 
 - Exactly `1.2` is small rise, not big rise.
