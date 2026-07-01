@@ -133,12 +133,14 @@ def initials_for(value: str) -> str:
     return "".join(part[0] for part in normalize_name(value).split() if part)
 
 
-def match_asset_token(token: str, candidates: list[Asset], label: str) -> Asset:
+def match_asset_token(
+    token: str, candidates: list[Asset], label: str, allow_number_index: bool = True
+) -> Asset:
     """用列表编号、asset id、全名或缩写匹配一个资产。"""
     cleaned = token.strip()
     if not cleaned:
         raise ValueError(f"empty {label} selection")
-    if cleaned.isdigit():
+    if allow_number_index and cleaned.isdigit():
         index = int(cleaned)
         if 1 <= index <= len(candidates):
             return candidates[index - 1]
@@ -187,6 +189,48 @@ def parse_asset_selection(
     if len(set(selected_ids)) != len(selected_ids):
         raise ValueError(f"Duplicate {label} selections are not allowed")
     return selected
+
+
+def match_prefixed_asset_number(
+    token: str, drivers: list[Asset], constructors: list[Asset]
+) -> Asset | None:
+    """解析 d1/c1 这种带类型前缀的列表编号。"""
+    cleaned = token.strip().lower()
+    if len(cleaned) < 2 or not cleaned[1:].isdigit():
+        return None
+    index = int(cleaned[1:]) - 1
+    if cleaned[0] == "d" and 0 <= index < len(drivers):
+        return drivers[index]
+    if cleaned[0] == "c" and 0 <= index < len(constructors):
+        return constructors[index]
+    return None
+
+
+def parse_exclusion_selection(
+    raw_selection: str, drivers: list[Asset], constructors: list[Asset]
+) -> tuple[Asset, ...]:
+    """解析本场不能选择的资产列表。"""
+    tokens = split_ids(raw_selection)
+    if not tokens:
+        return ()
+
+    all_assets = drivers + constructors
+    selected: list[Asset] = []
+    for token in tokens:
+        prefixed = match_prefixed_asset_number(token, drivers, constructors)
+        if prefixed is not None:
+            selected.append(prefixed)
+            continue
+        selected.append(
+            match_asset_token(
+                token, all_assets, "excluded asset", allow_number_index=False
+            )
+        )
+
+    selected_ids = [asset.asset_id for asset in selected]
+    if len(set(selected_ids)) != len(selected_ids):
+        raise ValueError("Duplicate excluded assets are not allowed")
+    return tuple(selected)
 
 
 def previous_lineup_price(assets: list[Asset], previous_lineup: tuple[str, ...]) -> Decimal:
@@ -238,8 +282,22 @@ def prompt_decimal(prompt: str, field: str) -> Decimal:
             print(f"error: {exc}")
 
 
-def interactive_previous_lineup_and_budget(assets: list[Asset]) -> tuple[tuple[str, ...], Decimal]:
-    """交互式选择上周阵容并询问剩余资金。"""
+def prompt_excluded_assets(drivers: list[Asset], constructors: list[Asset]) -> tuple[Asset, ...]:
+    """询问本场不能选择的资产。"""
+    while True:
+        raw_selection = input(
+            "Unavailable picks for this race (optional; names/ids, or d1/c1 list numbers): "
+        )
+        try:
+            return parse_exclusion_selection(raw_selection, drivers, constructors)
+        except ValueError as exc:
+            print(f"error: {exc}")
+
+
+def interactive_previous_lineup_budget_and_exclusions(
+    assets: list[Asset],
+) -> tuple[tuple[str, ...], Decimal, tuple[str, ...]]:
+    """交互式选择上周阵容、询问剩余资金和本场不可选资产。"""
     drivers = [asset for asset in assets if asset.type == "driver"]
     constructors = [asset for asset in assets if asset.type == "constructor"]
     print_asset_choices("Drivers:", drivers)
@@ -253,12 +311,18 @@ def interactive_previous_lineup_and_budget(assets: list[Asset]) -> tuple[tuple[s
     previous_price = previous_lineup_price(assets, previous_lineup)
     remaining_bank = prompt_decimal("Remaining bank (M): ", "remaining bank")
     budget = previous_price + remaining_bank
+    excluded_assets = prompt_excluded_assets(drivers, constructors)
+    excluded_ids = tuple(asset.asset_id for asset in excluded_assets)
     print()
     print(f"Previous lineup price: {fmt_decimal(previous_price)}M")
     print(f"Remaining bank: {fmt_decimal(remaining_bank)}M")
     print(f"Computed budget: {fmt_decimal(budget)}M")
+    if excluded_assets:
+        print("Unavailable picks:")
+        for asset in excluded_assets:
+            print(f"  - {asset.name} ({asset.asset_id})")
     print()
-    return previous_lineup, budget
+    return previous_lineup, budget, excluded_ids
 
 
 def latest_scored_round_id(assets: Iterable[Asset]) -> str:
@@ -377,6 +441,7 @@ def print_report(
     assets: list[Asset],
     budget: Decimal,
     previous_lineup: tuple[str, ...],
+    excluded_ids: tuple[str, ...],
     free_transfers: int,
     penalty_per_extra: Decimal,
     context: dict[str, str],
@@ -401,6 +466,10 @@ def print_report(
     print("Previous lineup:")
     for asset_id in previous_lineup:
         print(f"  - {name_for_asset_id(asset_id, assets_by_id)}")
+    if excluded_ids:
+        print("Unavailable picks excluded from optimization:")
+        for asset_id in excluded_ids:
+            print(f"  - {name_for_asset_id(asset_id, assets_by_id)}")
 
     for index, lineup in enumerate(lineups, start=1):
         remaining = budget - lineup.price
@@ -457,6 +526,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Remaining bank; total budget becomes previous lineup price plus this value",
     )
     parser.add_argument(
+        "--exclude",
+        default="",
+        help="Assets unavailable for this race; supports names, ids, abbreviations, d1/c1",
+    )
+    parser.add_argument(
         "--official-dir",
         type=Path,
         default=Path("data/official"),
@@ -483,7 +557,9 @@ def main(argv: list[str] | None = None) -> int:
 
         assets = load_assets(args.official_dir)
         if args.interactive:
-            previous_lineup, budget = interactive_previous_lineup_and_budget(assets)
+            previous_lineup, budget, excluded_ids = (
+                interactive_previous_lineup_budget_and_exclusions(assets)
+            )
         else:
             if not args.previous_lineup:
                 raise ValueError("provide --previous-lineup or use --interactive")
@@ -495,11 +571,18 @@ def main(argv: list[str] | None = None) -> int:
                 budget = decimal_value(args.budget, "budget")
             else:
                 raise ValueError("provide budget or --remaining-bank")
+            drivers = [asset for asset in assets if asset.type == "driver"]
+            constructors = [asset for asset in assets if asset.type == "constructor"]
+            excluded_assets = parse_exclusion_selection(args.exclude, drivers, constructors)
+            excluded_ids = tuple(asset.asset_id for asset in excluded_assets)
 
         if budget <= 0:
             raise ValueError("budget must be positive")
+        available_assets = [
+            asset for asset in assets if asset.asset_id not in set(excluded_ids)
+        ]
         lineups = generate_best_lineups(
-            assets,
+            available_assets,
             budget,
             previous_lineup,
             args.free_transfers,
@@ -511,6 +594,7 @@ def main(argv: list[str] | None = None) -> int:
             assets,
             budget,
             previous_lineup,
+            excluded_ids,
             args.free_transfers,
             penalty_per_extra,
             load_round_context(args.official_dir),

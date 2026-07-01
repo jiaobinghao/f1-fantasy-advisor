@@ -238,6 +238,55 @@ class BestLineupWithTransfersTests(unittest.TestCase):
 
             self.assertEqual(budget, Decimal("72.5"))
 
+    def test_parse_exclusion_selection_accepts_prefixed_numbers_and_names(self):
+        drivers = [
+            best_lineup_with_transfers.Asset(
+                "d1", "driver", "Kimi Antonelli", Decimal("25"), Decimal("10"), "7"
+            ),
+            best_lineup_with_transfers.Asset(
+                "d2", "driver", "Lewis Hamilton", Decimal("24"), Decimal("20"), "7"
+            ),
+        ]
+        constructors = [
+            best_lineup_with_transfers.Asset(
+                "c1", "constructor", "Ferrari", Decimal("25"), Decimal("30"), "7"
+            ),
+            best_lineup_with_transfers.Asset(
+                "c2", "constructor", "Mercedes", Decimal("31"), Decimal("40"), "7"
+            ),
+        ]
+
+        excluded = best_lineup_with_transfers.parse_exclusion_selection(
+            "d1,mercedes,ham", drivers, constructors
+        )
+
+        self.assertEqual(
+            [asset.asset_id for asset in excluded],
+            ["d1", "c2", "d2"],
+        )
+
+    def test_excluded_assets_are_not_selected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir = Path(tmp)
+            self.write_fixture(official_dir)
+
+            assets = best_lineup_with_transfers.load_assets(official_dir)
+            previous = ("d1", "d2", "d3", "d4", "d5", "c1", "c2")
+            available_assets = [asset for asset in assets if asset.asset_id != "d6"]
+            lineups = best_lineup_with_transfers.generate_best_lineups(
+                available_assets,
+                Decimal("70"),
+                previous,
+                free_transfers=2,
+                penalty_per_extra=Decimal("10"),
+                top=1,
+            )
+            selected_ids = {
+                asset.asset_id for asset in lineups[0].drivers + lineups[0].constructors
+            }
+
+            self.assertNotIn("d6", selected_ids)
+
 
 if __name__ == "__main__":
     unittest.main()
