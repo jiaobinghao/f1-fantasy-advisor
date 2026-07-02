@@ -6,6 +6,8 @@ F1 Fantasy Advisor helps you use Codex as a Formula 1 Fantasy assistant. It
 keeps public fantasy data up to date, tracks prices and race-week scores, and
 turns that information into lineup, chip, and budget-building advice.
 
+By the way,I have found a [website](https://f1fantasytools.com),which has more data than mine,but I still think my f1-fantasy-advisor useful,even though I may not update it anymore.
+
 ## Start Here
 
 Open Codex with this skill available and say:
