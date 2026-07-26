@@ -1,5 +1,8 @@
 # F1 Fantasy Advisor
 
+[![tests](https://github.com/jiaobinghao/f1-fantasy-advisor/actions/workflows/tests.yml/badge.svg)](https://github.com/jiaobinghao/f1-fantasy-advisor/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [Chinese README](README.zh-CN.md)
 
 F1 Fantasy Advisor helps you use Codex as a Formula 1 Fantasy assistant. It
@@ -126,8 +129,6 @@ skill-dev/f1-fantasy-advisor/
 
 `now.md` is for local personal working notes and is ignored by Git.
 
-This project is licensed under the MIT License (see `LICENSE`).
-
 ### Recent Behavior Changes
 
 - Numeric parsing and formatting are now shared by all scripts: values that
@@ -219,3 +220,7 @@ hydrated endpoint data:
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --input live_scores.txt
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

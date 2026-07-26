@@ -1,5 +1,8 @@
 # F1 Fantasy Advisor
 
+[![tests](https://github.com/jiaobinghao/f1-fantasy-advisor/actions/workflows/tests.yml/badge.svg)](https://github.com/jiaobinghao/f1-fantasy-advisor/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [English README](README.md)
 
 F1 Fantasy Advisor 可以让你用 Codex 做 Formula 1 Fantasy 助手。它会维护公开 fantasy 数据，追踪价格和每站积分，并把这些信息转化成阵容、芯片和预算增长建议。
@@ -104,8 +107,6 @@ skill-dev/f1-fantasy-advisor/
 
 `now.md` 用于本地个人工作笔记，已被 Git 忽略。
 
-本项目使用 MIT 许可证（见 `LICENSE`）。
-
 ### 近期行为变化
 
 - 数字解析与格式化改为全部脚本共享：四舍五入后为负零的值显示为 `0`；
@@ -188,3 +189,7 @@ python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --clip
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --input live_scores.txt
 ```
+
+## 许可证
+
+本项目使用 [MIT 许可证](LICENSE)。
