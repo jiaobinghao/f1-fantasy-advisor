@@ -5,131 +5,26 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass
 from decimal import Decimal
-from itertools import combinations
 from pathlib import Path
-from typing import Iterable
 
 _SCRIPTS_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
 from f1f_common import (
+    Asset,
+    Lineup,
+    build_lineup,
     decimal_value,
     fmt_decimal,
+    generate_lineups,
     load_round_context,
+    print_asset,
     read_csv,
+    two_x_driver_for,
 )
-
-
-@dataclass(frozen=True)
-class Asset:
-    asset_id: str
-    type: str
-    name: str
-    price: Decimal
-    score: Decimal
-
-
-@dataclass(frozen=True)
-class Lineup:
-    drivers: tuple[Asset, ...]
-    constructors: tuple[Asset, ...]
-    price: Decimal
-    base_score: Decimal
-    two_x_driver: Asset
-    two_x_bonus: Decimal
-    final_score: Decimal
-
-
-def load_assets(official_dir: Path) -> list[Asset]:
-    """从 official_asset_metrics.csv 读取可用资产。"""
-    rows = read_csv(official_dir / "official_asset_metrics.csv")
-    assets: list[Asset] = []
-    for index, row in enumerate(rows, start=2):
-        if row.get("is_active") != "1":
-            continue
-        asset_type = row.get("type", "").strip().lower()
-        if asset_type not in {"driver", "constructor"}:
-            raise ValueError(f"official_asset_metrics.csv row {index}: unknown type {asset_type!r}")
-        asset_id = row.get("asset_id", "").strip()
-        name = row.get("name", "").strip()
-        if not asset_id or not name:
-            raise ValueError(f"official_asset_metrics.csv row {index}: missing asset_id or name")
-        assets.append(
-            Asset(
-                asset_id=asset_id,
-                type=asset_type,
-                name=name,
-                price=decimal_value(row.get("last1_price"), "last1_price"),
-                score=decimal_value(row.get("last1_fpoints"), "last1_fpoints"),
-            )
-        )
-    return assets
-
-
-def two_x_driver_for(drivers: Iterable[Asset]) -> Asset:
-    """选出 Auto-Pilot 自动 2x 的最高分车手。"""
-    return max(drivers, key=lambda asset: (asset.score, asset.name))
-
-
-def build_lineup(drivers: tuple[Asset, ...], constructors: tuple[Asset, ...]) -> Lineup:
-    """根据 5 个车手和 2 个车队计算阵容价格与分数。"""
-    assets = drivers + constructors
-    price = sum((asset.price for asset in assets), Decimal("0"))
-    base_score = sum((asset.score for asset in assets), Decimal("0"))
-    two_x_driver = two_x_driver_for(drivers)
-    two_x_bonus = two_x_driver.score
-    final_score = base_score + two_x_bonus
-    return Lineup(
-        drivers=drivers,
-        constructors=constructors,
-        price=price,
-        base_score=base_score,
-        two_x_driver=two_x_driver,
-        two_x_bonus=two_x_bonus,
-        final_score=final_score,
-    )
-
-
-def generate_lineups(assets: list[Asset], budget: Decimal, top: int) -> list[Lineup]:
-    """穷举所有合法阵容，并返回分数最高的前几套。"""
-    drivers = [asset for asset in assets if asset.type == "driver"]
-    constructors = [asset for asset in assets if asset.type == "constructor"]
-    if len(drivers) < 5:
-        raise ValueError(f"Need at least 5 active drivers, found {len(drivers)}")
-    if len(constructors) < 2:
-        raise ValueError(f"Need at least 2 active constructors, found {len(constructors)}")
-
-    lineups: list[Lineup] = []
-    for driver_combo in combinations(drivers, 5):
-        for constructor_combo in combinations(constructors, 2):
-            lineup = build_lineup(driver_combo, constructor_combo)
-            if lineup.price <= budget:
-                lineups.append(lineup)
-
-    if not lineups:
-        raise ValueError(f"No valid lineup fits budget {fmt_decimal(budget)}M")
-
-    return sorted(
-        lineups,
-        key=lambda lineup: (
-            lineup.final_score,
-            lineup.base_score,
-            budget - lineup.price,
-            ",".join(asset.name for asset in lineup.drivers + lineup.constructors),
-        ),
-        reverse=True,
-    )[:top]
-
-
-def print_asset(asset: Asset) -> None:
-    """打印单个资产的名称、id、价格和分数。"""
-    print(
-        f"  - {asset.name} ({asset.asset_id}): "
-        f"price {fmt_decimal(asset.price)}M, score {fmt_decimal(asset.score)}"
-    )
+from f1f_common import load_official_assets as load_assets
 
 
 def print_report(lineups: list[Lineup], budget: Decimal, context: dict[str, str]) -> None:

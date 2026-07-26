@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass
 from decimal import Decimal
-from itertools import combinations
 from pathlib import Path
 from typing import Iterable
 
@@ -16,69 +14,25 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
 from f1f_common import (
+    DEFAULT_FREE_TRANSFERS,
+    DEFAULT_PENALTY_PER_EXTRA,
+    Asset,
+    TransferLineup,
+    build_transfer_lineup,
     decimal_value,
     fmt_decimal,
+    generate_best_lineups,
     initials_for,
     load_round_context,
     normalize_name,
+    print_asset,
     prompt_loop,
     read_csv,
+    split_by_type,
     split_ids,
+    two_x_driver_for,
 )
-
-
-@dataclass(frozen=True)
-class Asset:
-    asset_id: str
-    type: str
-    name: str
-    price: Decimal
-    score: Decimal
-    scored_round_id: str
-
-
-@dataclass(frozen=True)
-class TransferLineup:
-    drivers: tuple[Asset, ...]
-    constructors: tuple[Asset, ...]
-    price: Decimal
-    base_score: Decimal
-    two_x_driver: Asset
-    two_x_bonus: Decimal
-    gross_score: Decimal
-    transfer_count: int
-    extra_transfers: int
-    transfer_penalty: Decimal
-    net_score: Decimal
-    transfers_in: tuple[Asset, ...]
-    transfers_out: tuple[str, ...]
-
-
-def load_assets(official_dir: Path) -> list[Asset]:
-    """从 official_asset_metrics.csv 读取本周已有分数的资产。"""
-    rows = read_csv(official_dir / "official_asset_metrics.csv")
-    assets: list[Asset] = []
-    for index, row in enumerate(rows, start=2):
-        if row.get("is_active") != "1":
-            continue
-        asset_type = row.get("type", "").strip().lower()
-        if asset_type not in {"driver", "constructor"}:
-            raise ValueError(f"official_asset_metrics.csv row {index}: unknown type {asset_type!r}")
-        asset_id = row.get("asset_id", "").strip()
-        name = row.get("name", "").strip()
-        if not asset_id or not name:
-            raise ValueError(f"official_asset_metrics.csv row {index}: missing asset_id or name")
-        assets.append(
-            Asset(
-                asset_id=asset_id,
-                type=asset_type,
-                name=name,
-                price=decimal_value(row.get("last1_price"), "last1_price"),
-                score=decimal_value(row.get("last1_fpoints"), "last1_fpoints"),
-                scored_round_id=row.get("last1_round_id", "").strip(),
-            )
-        )
-    return assets
+from f1f_common import load_official_assets as load_assets
 
 
 def validate_previous_lineup(raw_lineup: str) -> tuple[str, ...]:
@@ -277,109 +231,10 @@ def latest_scored_round_id(assets: Iterable[Asset]) -> str:
     return round_ids[-1] if round_ids else ""
 
 
-def two_x_driver_for(drivers: Iterable[Asset]) -> Asset:
-    """选出本阵容里 2x 后贡献最大的车手。"""
-    return max(drivers, key=lambda asset: (asset.score, asset.name))
-
-
-def build_transfer_lineup(
-    drivers: tuple[Asset, ...],
-    constructors: tuple[Asset, ...],
-    previous_ids: set[str],
-    free_transfers: int,
-    penalty_per_extra: Decimal,
-) -> TransferLineup:
-    """计算一个候选阵容的总分、换人次数和扣分后净分。"""
-    assets = drivers + constructors
-    selected_ids = {asset.asset_id for asset in assets}
-    transfers_in = tuple(asset for asset in assets if asset.asset_id not in previous_ids)
-    transfers_out = tuple(sorted(previous_ids - selected_ids))
-    transfer_count = len(transfers_in)
-    extra_transfers = max(0, transfer_count - free_transfers)
-    transfer_penalty = penalty_per_extra * Decimal(extra_transfers)
-
-    price = sum((asset.price for asset in assets), Decimal("0"))
-    base_score = sum((asset.score for asset in assets), Decimal("0"))
-    two_x_driver = two_x_driver_for(drivers)
-    two_x_bonus = two_x_driver.score
-    gross_score = base_score + two_x_bonus
-    net_score = gross_score - transfer_penalty
-
-    return TransferLineup(
-        drivers=drivers,
-        constructors=constructors,
-        price=price,
-        base_score=base_score,
-        two_x_driver=two_x_driver,
-        two_x_bonus=two_x_bonus,
-        gross_score=gross_score,
-        transfer_count=transfer_count,
-        extra_transfers=extra_transfers,
-        transfer_penalty=transfer_penalty,
-        net_score=net_score,
-        transfers_in=transfers_in,
-        transfers_out=transfers_out,
-    )
-
-
-def generate_best_lineups(
-    assets: list[Asset],
-    budget: Decimal,
-    previous_lineup: tuple[str, ...],
-    free_transfers: int,
-    penalty_per_extra: Decimal,
-    top: int,
-) -> list[TransferLineup]:
-    """穷举所有合法阵容，按扣分后净分返回最优结果。"""
-    drivers = [asset for asset in assets if asset.type == "driver"]
-    constructors = [asset for asset in assets if asset.type == "constructor"]
-    if len(drivers) < 5:
-        raise ValueError(f"Need at least 5 active drivers, found {len(drivers)}")
-    if len(constructors) < 2:
-        raise ValueError(f"Need at least 2 active constructors, found {len(constructors)}")
-
-    previous_ids = set(previous_lineup)
-    lineups: list[TransferLineup] = []
-    for driver_combo in combinations(drivers, 5):
-        for constructor_combo in combinations(constructors, 2):
-            lineup = build_transfer_lineup(
-                driver_combo,
-                constructor_combo,
-                previous_ids,
-                free_transfers,
-                penalty_per_extra,
-            )
-            if lineup.price <= budget:
-                lineups.append(lineup)
-
-    if not lineups:
-        raise ValueError(f"No valid lineup fits budget {fmt_decimal(budget)}M")
-
-    return sorted(
-        lineups,
-        key=lambda lineup: (
-            lineup.net_score,
-            lineup.gross_score,
-            -lineup.transfer_count,
-            budget - lineup.price,
-            ",".join(asset.name for asset in lineup.drivers + lineup.constructors),
-        ),
-        reverse=True,
-    )[:top]
-
-
 def name_for_asset_id(asset_id: str, assets_by_id: dict[str, Asset]) -> str:
     """把 asset id 格式化成带名称的文本。"""
     asset = assets_by_id.get(asset_id)
     return f"{asset.name} ({asset.asset_id})" if asset else asset_id
-
-
-def print_asset(asset: Asset) -> None:
-    """打印一个资产的价格和本周得分。"""
-    print(
-        f"  - {asset.name} ({asset.asset_id}): "
-        f"price {fmt_decimal(asset.price)}M, score {fmt_decimal(asset.score)}"
-    )
 
 
 def print_report(
@@ -482,10 +337,41 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/official"),
         help="Directory containing official_asset_metrics.csv",
     )
-    parser.add_argument("--free-transfers", type=int, default=2)
-    parser.add_argument("--penalty-per-extra", default="10")
-    parser.add_argument("--top", type=int, default=5)
+    parser.add_argument(
+        "--free-transfers",
+        type=int,
+        default=DEFAULT_FREE_TRANSFERS,
+        help="Free transfers before penalties apply",
+    )
+    parser.add_argument(
+        "--penalty-per-extra",
+        default=DEFAULT_PENALTY_PER_EXTRA,
+        help="Points deducted per extra transfer",
+    )
+    parser.add_argument("--top", type=int, default=5, help="Number of lineups to print")
     return parser
+
+
+def resolve_transfer_inputs(
+    args: argparse.Namespace, assets: list[Asset]
+) -> tuple[tuple[str, ...], Decimal, tuple[str, ...]]:
+    """从交互模式或命令行参数得到上周阵容、总预算与排除项。"""
+    if args.interactive:
+        return interactive_previous_lineup_budget_and_exclusions(assets)
+
+    if not args.previous_lineup:
+        raise ValueError("provide --previous-lineup or use --interactive")
+    previous_lineup = validate_previous_lineup(args.previous_lineup)
+    if args.remaining_bank:
+        remaining_bank = decimal_value(args.remaining_bank, "remaining bank")
+        budget = budget_from_remaining_bank(assets, previous_lineup, remaining_bank)
+    elif args.budget:
+        budget = decimal_value(args.budget, "budget")
+    else:
+        raise ValueError("provide budget or --remaining-bank")
+    drivers, constructors = split_by_type(assets)
+    excluded_assets = parse_exclusion_selection(args.exclude, drivers, constructors)
+    return previous_lineup, budget, tuple(asset.asset_id for asset in excluded_assets)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -502,25 +388,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--top must be positive")
 
         assets = load_assets(args.official_dir)
-        if args.interactive:
-            previous_lineup, budget, excluded_ids = (
-                interactive_previous_lineup_budget_and_exclusions(assets)
-            )
-        else:
-            if not args.previous_lineup:
-                raise ValueError("provide --previous-lineup or use --interactive")
-            previous_lineup = validate_previous_lineup(args.previous_lineup)
-            if args.remaining_bank:
-                remaining_bank = decimal_value(args.remaining_bank, "remaining bank")
-                budget = budget_from_remaining_bank(assets, previous_lineup, remaining_bank)
-            elif args.budget:
-                budget = decimal_value(args.budget, "budget")
-            else:
-                raise ValueError("provide budget or --remaining-bank")
-            drivers = [asset for asset in assets if asset.type == "driver"]
-            constructors = [asset for asset in assets if asset.type == "constructor"]
-            excluded_assets = parse_exclusion_selection(args.exclude, drivers, constructors)
-            excluded_ids = tuple(asset.asset_id for asset in excluded_assets)
+        previous_lineup, budget, excluded_ids = resolve_transfer_inputs(args, assets)
 
         if budget <= 0:
             raise ValueError("budget must be positive")
