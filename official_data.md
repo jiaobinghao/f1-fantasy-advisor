@@ -2,7 +2,7 @@
 
 调查时间：2026-06-08。
 
-说明：文件名按当前需求写作 `offical_data.md`。这些接口是 F1 Fantasy 网页使用的 first-party public JSON，不需要登录，但没有官方 API 文档保证，字段语义需要用样本反推并持续校验。
+说明：这些接口是 F1 Fantasy 网页使用的 first-party public JSON，不需要登录，但没有官方 API 文档保证，字段语义需要用样本反推并持续校验。
 
 ## 总览
 

@@ -17,7 +17,7 @@ should stay ignored by Git; committed CSV templates live in `data-templates/`.
 
 ## Startup Prompt
 
-When the user says `帮我开始fantasy指导`:
+When the user says `帮我开始fantasy指导` or `Help me start F1 Fantasy guidance.`:
 
 1. Inspect the workspace CSVs.
 2. If the local `data/` CSVs are missing, initialize them with
@@ -91,6 +91,39 @@ unless public feeds fail.
 When `team_state.csv` is empty, ask beginner-friendly questions and record the
 answers. Do not rely on `now.md` or prior chat memory for lineup, budget, chips,
 or transfer penalties.
+
+## Lineup Tools
+
+Lineup optimizers under `scripts/`, all run from the fantasy workspace after a
+public data fetch:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
+python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --interactive
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --interactive
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py budget 112
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py transfers --interactive
+```
+
+- `auto_pilot_lineup.py BUDGET` finds the theoretical best lineup for a cost
+  cap from `data/official` metrics.
+- `best_lineup_with_transfers.py` starts from last week's lineup and accounts
+  for extra-transfer penalties; `--interactive` prompts for the previous
+  lineup, remaining bank, and exclusions.
+- `live_lineup_score.py --fetch` caches live race-week scores from the
+  third-party `f1fantasytools.com/api/live-scoring` endpoint into
+  `data/live/live_asset_scores.csv`; `--fetch --clipboard` and
+  `--fetch --input FILE` are the fallbacks when that site changes or is
+  unreachable. `--interactive` scores a chosen lineup from the cache.
+- `best_live_lineup.py` merges the live cache with official `last1_price`:
+  `budget` mode finds the theoretical best live lineup, `transfers` mode
+  optimizes from the previous lineup after penalties. It rejects a live cache
+  from a different race than the official target round, and labels
+  non-finalized scores as provisional.
+
+Live scores are observation-only until the race week completes; never feed
+them into budget or rolling-score state.
 
 ## References
 

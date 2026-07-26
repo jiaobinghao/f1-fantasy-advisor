@@ -168,6 +168,15 @@ official_round_context.csv:is_complete
 `official_asset_metrics.csv` uses only complete gamedays before the target round
 for `last1_fpoints`, `last2_fpoints`, and `rolling2_fpoints`.
 
+For live lineup scoring, `live_lineup_score.py --fetch` caches a live snapshot
+from the third-party `f1fantasytools.com/api/live-scoring` endpoint into
+`data/live/live_asset_scores.csv` (clipboard and file import are the
+fallbacks). `best_live_lineup.py` merges that cache with official
+`last1_price` and refuses a cache from a different race than the official
+target round. Snapshots that are not finalized are labeled provisional; they
+follow the same rule as partial gamedays above and must not feed budget,
+rolling AvgPPM, or post-race state updates.
+
 ## Screenshot Policy
 
 Do not ask for routine screenshots for public fantasy data:
@@ -208,7 +217,12 @@ Mitigations:
 ## External References
 
 Treat third-party F1 Fantasy projects as endpoint maps and test references, not
-as default runtime dependencies.
+as default runtime dependencies. One documented exception: the live race-week
+tools (`live_lineup_score.py`, `best_live_lineup.py`) read the third-party
+`f1fantasytools.com/api/live-scoring` endpoint, because the official site
+exposes no equivalent public live feed. Clipboard and file import stay
+available as fallbacks, and nothing outside the live tools depends on that
+site.
 
 - `zeroclutch/f1-fantasy-api`: Node client for an older F1 Fantasy API shape;
   useful for historical endpoint naming, but do not depend on it for current

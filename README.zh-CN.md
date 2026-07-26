@@ -4,6 +4,8 @@
 
 F1 Fantasy Advisor 可以让你用 Codex 做 Formula 1 Fantasy 助手。它会维护公开 fantasy 数据，追踪价格和每站积分，并把这些信息转化成阵容、芯片和预算增长建议。
 
+顺带一提，我发现了一个[网站](https://f1fantasytools.com)，它的数据比我这里更全。我仍然觉得 f1-fantasy-advisor 有用，但我以后可能不再更新它了。
+
 ## 从这里开始
 
 在 Codex 中启用这个 skill 后，说：
@@ -60,7 +62,8 @@ advisor 会把这些私有比赛周状态记录到本地 `data/` 里的 CSV，�
 环境要求：
 
 - Python 3.10 或更新版本
-- 可以访问 `fantasy.formula1.com`
+- 可以访问 `fantasy.formula1.com`（官方数据抓取）
+- 可以访问 `f1fantasytools.com`（第三方网站，仅 Live 本站工具需要）
 - 不需要第三方 Python 包
 
 本地真实 fantasy 状态放在 `data/`。这个目录会被 Git 忽略，因为它可能包含你的真实队伍、budget、chips 和抓取到的分站数据。可提交的 CSV 表头模板放在 `data-templates/`。
@@ -103,20 +106,20 @@ skill-dev/f1-fantasy-advisor/
 
 ## 工具说明
 
-# 官方数据收集
+### 官方数据收集
 
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/fetch_fantasy_public.py --out-dir data/official
 ```
 
-# auto-pilot计算
+### auto-pilot计算
 
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112
 python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
 ```
 
-# 从上周阵容计算本周最佳阵容
+### 从上周阵容计算本周最佳阵容
 
 交互式输入上周 5 位车手、2 个车队和剩余 budget，并自动考虑超额换人扣分：
 
@@ -124,10 +127,11 @@ python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
 python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --interactive
 ```
 
-# Live 本站阵容计分
+### Live 本站阵容计分
 
-分成两个独立步骤。首先通过 Live 页面自身使用的公开
-`/api/live-scoring` 更新接口获取水合后的最新分数并缓存（每次运行请求一次）：
+分成两个独立步骤。首先通过 [f1fantasytools.com](https://f1fantasytools.com)
+（第三方网站）Live 页面使用的公开 `/api/live-scoring` 接口获取水合后的最新分数
+并缓存（每次运行请求一次）；下文的剪贴板和文件导入是兜底方案：
 
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch

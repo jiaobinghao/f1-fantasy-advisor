@@ -6,7 +6,9 @@ F1 Fantasy Advisor helps you use Codex as a Formula 1 Fantasy assistant. It
 keeps public fantasy data up to date, tracks prices and race-week scores, and
 turns that information into lineup, chip, and budget-building advice.
 
-By the way,I have found a [website](https://f1fantasytools.com),which has more data than mine,but I still think my f1-fantasy-advisor useful,even though I may not update it anymore.
+By the way, I have found a [website](https://f1fantasytools.com) which has more
+data than mine, but I still think my f1-fantasy-advisor is useful, even though I
+may not update it anymore.
 
 ## Start Here
 
@@ -78,7 +80,9 @@ the race week is complete.
 Requirements:
 
 - Python 3.10 or newer
-- Network access to `fantasy.formula1.com`
+- Network access to `fantasy.formula1.com` for official data fetch
+- Network access to `f1fantasytools.com` (third-party site) only for the live
+  race-week tools
 - No third-party Python packages are required
 
 Local fantasy state lives in `data/`. That directory is ignored by Git because
@@ -149,8 +153,9 @@ python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --int
 ### Live Race-Week Lineup Score
 
 Use two separate commands. First fetch and cache the hydrated current scores
-from the public `/api/live-scoring` endpoint used by the Live page. Each run
-makes one request:
+from the public `/api/live-scoring` endpoint used by the
+[f1fantasytools.com](https://f1fantasytools.com) Live page (a third-party site;
+clipboard and file import below are the fallbacks). Each run makes one request:
 
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch
