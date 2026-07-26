@@ -18,6 +18,29 @@ LINEUP_SIZE = DRIVERS_PER_LINEUP + CONSTRUCTORS_PER_LINEUP
 DEFAULT_FREE_TRANSFERS = 2
 DEFAULT_PENALTY_PER_EXTRA = "10"
 
+# Live 页面使用的三字母代码。车队和不规则车手代码没有可推断规律，先查
+# data/official/asset_codes.csv 覆盖表，再查这两张内置表，车手最后退回
+# "姓氏前 3 字母" 启发式。
+DEFAULT_CONSTRUCTOR_CODES = {
+    "mercedes": "MER",
+    "ferrari": "FER",
+    "mclaren": "MCL",
+    "red bull racing": "RED",
+    "alpine": "ALP",
+    "racing bulls": "VRB",
+    "haas f1 team": "HAA",
+    "williams": "WIL",
+    "audi": "AUD",
+    "cadillac": "CAD",
+    "aston martin": "AST",
+}
+
+DEFAULT_DRIVER_CODES = {
+    "zhou guanyu": "ZHO",
+}
+
+ASSET_CODES_FILENAME = "asset_codes.csv"
+
 T = TypeVar("T")
 
 
@@ -350,3 +373,47 @@ def print_asset(asset: Asset) -> None:
         f"  - {asset.name} ({asset.asset_id}): "
         f"price {fmt_decimal(asset.price)}M, score {fmt_decimal(asset.score)}"
     )
+
+
+def load_code_overrides(official_dir: Path) -> dict[tuple[str, str], str]:
+    """读取 asset_codes.csv 代码覆盖表；文件不存在时返回空映射。"""
+    path = official_dir / ASSET_CODES_FILENAME
+    if not path.exists():
+        return {}
+    overrides: dict[tuple[str, str], str] = {}
+    for row in read_csv(path, required=("type", "name", "code")):
+        code = row.get("code", "").strip().upper()
+        if not code:
+            continue
+        asset_id = row.get("asset_id", "").strip()
+        if asset_id:
+            overrides[("id", asset_id)] = code
+        name = row.get("name", "").strip()
+        if name:
+            overrides[(row.get("type", "").strip().lower(), normalize_name(name))] = code
+    return overrides
+
+
+def site_code(
+    asset_type: str,
+    name: str,
+    asset_id: str = "",
+    overrides: dict[tuple[str, str], str] | None = None,
+) -> str:
+    """推断 Live 页面使用的三字母代码：覆盖表 → 内置表 → 姓氏前 3 字母。"""
+    overrides = overrides or {}
+    if asset_id and ("id", asset_id) in overrides:
+        return overrides[("id", asset_id)]
+    normalized = normalize_name(name)
+    if (asset_type, normalized) in overrides:
+        return overrides[(asset_type, normalized)]
+    if asset_type == "constructor":
+        if normalized not in DEFAULT_CONSTRUCTOR_CODES:
+            raise ValueError(
+                f"Unknown constructor code for {name!r}; map it in "
+                f"data/official/{ASSET_CODES_FILENAME}"
+            )
+        return DEFAULT_CONSTRUCTOR_CODES[normalized]
+    if normalized in DEFAULT_DRIVER_CODES:
+        return DEFAULT_DRIVER_CODES[normalized]
+    return normalized.split()[-1][:3].upper()

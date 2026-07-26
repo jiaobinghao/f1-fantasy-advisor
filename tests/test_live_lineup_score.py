@@ -6,13 +6,15 @@ from decimal import Decimal
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from script_loader import load_script
+from script_loader import METRIC_COLUMNS, load_script, metric_row, write_csv
 
 live_lineup_score = load_script("live_lineup_score")
 
 
-def asset(asset_id, asset_type, name, code):
-    return live_lineup_score.Asset(asset_id, asset_type, name, code, Decimal("0"))
+def asset(asset_id, asset_type, name, code, score=Decimal("0")):
+    return live_lineup_score.Asset(
+        asset_id=asset_id, type=asset_type, name=name, code=code, score=score
+    )
 
 
 class LiveLineupScoreTests(unittest.TestCase):
@@ -98,14 +100,14 @@ class LiveLineupScoreTests(unittest.TestCase):
 
     def test_two_x_driver_must_be_selected(self):
         drivers = tuple(
-            live_lineup_score.Asset(item.asset_id, item.type, item.name, item.code, Decimal("1"))
+            asset(item.asset_id, item.type, item.name, item.code, Decimal("1"))
             for item in self.catalog[:5]
         )
         constructors = tuple(
-            live_lineup_score.Asset(item.asset_id, item.type, item.name, item.code, Decimal("1"))
+            asset(item.asset_id, item.type, item.name, item.code, Decimal("1"))
             for item in self.catalog[6:8]
         )
-        other = live_lineup_score.Asset("other", "driver", "Other Driver", "OTH", Decimal("1"))
+        other = asset("other", "driver", "Other Driver", "OTH", Decimal("1"))
 
         with self.assertRaisesRegex(ValueError, "2x driver must be"):
             live_lineup_score.calculate_lineup(drivers, constructors, other)
@@ -213,6 +215,33 @@ class LiveLineupScoreTests(unittest.TestCase):
     def test_rejects_invalid_live_api_shape(self):
         with self.assertRaisesRegex(ValueError, "unexpected shape"):
             live_lineup_score.parse_live_api([], self.catalog)
+
+
+class SiteCodeTests(unittest.TestCase):
+    def test_load_catalog_uses_overrides_and_builtin_irregular_codes(self):
+        rows = [
+            metric_row("d1", "driver", "Zhou Guanyu", "99", "10", "5"),
+            metric_row("d2", "driver", "Lewis Hamilton", "99", "10", "5"),
+            metric_row("c1", "constructor", "Future Team", "99", "10", "5"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir = Path(tmp)
+            write_csv(official_dir / "official_asset_metrics.csv", METRIC_COLUMNS, rows)
+            write_csv(
+                official_dir / "asset_codes.csv",
+                ["asset_id", "type", "name", "code"],
+                [{"asset_id": "", "type": "constructor", "name": "Future Team", "code": "FUT"}],
+            )
+            catalog = live_lineup_score.load_catalog(official_dir)
+
+        codes = {item.asset_id: item.code for item in catalog}
+        self.assertEqual(codes["d1"], "ZHO")
+        self.assertEqual(codes["d2"], "HAM")
+        self.assertEqual(codes["c1"], "FUT")
+
+    def test_unknown_constructor_code_mentions_override_file(self):
+        with self.assertRaisesRegex(ValueError, "asset_codes.csv"):
+            live_lineup_score.site_code("constructor", "Mystery Racing")
 
 
 if __name__ == "__main__":

@@ -23,10 +23,14 @@ if _SCRIPTS_DIR not in sys.path:
 
 import f1f_common
 from f1f_common import (
+    Asset,
     decimal_value,
     initials_for,
+    load_code_overrides,
     normalize_name,
+    prompt_loop,
     read_csv,
+    site_code,
 )
 from f1f_common import split_ids as split_selection
 
@@ -45,28 +49,7 @@ CACHE_COLUMNS = [
     "race_name",
     "round_number",
 ]
-CONSTRUCTOR_CODES = {
-    "mercedes": "MER",
-    "ferrari": "FER",
-    "mclaren": "MCL",
-    "red bull racing": "RED",
-    "alpine": "ALP",
-    "racing bulls": "VRB",
-    "haas f1 team": "HAA",
-    "williams": "WIL",
-    "audi": "AUD",
-    "cadillac": "CAD",
-    "aston martin": "AST",
-}
-
-
-@dataclass(frozen=True)
-class Asset:
-    asset_id: str
-    type: str
-    name: str
-    code: str
-    score: Decimal
+CONSTRUCTOR_CODES = f1f_common.DEFAULT_CONSTRUCTOR_CODES
 
 
 @dataclass(frozen=True)
@@ -94,19 +77,10 @@ def fmt_decimal(value: Decimal) -> str:
     return f1f_common.fmt_decimal(value, places=None)
 
 
-def site_code(asset_type: str, name: str) -> str:
-    """根据官方名称生成 Live 页面使用的三字母代码。"""
-    normalized = normalize_name(name)
-    if asset_type == "constructor":
-        if normalized not in CONSTRUCTOR_CODES:
-            raise ValueError(f"Unknown constructor code for {name!r}")
-        return CONSTRUCTOR_CODES[normalized]
-    return normalized.split()[-1][:3].upper()
-
-
 def load_catalog(official_dir: Path) -> list[Asset]:
     """从官方快照读取有效资产目录，分数暂置零。"""
     rows = read_csv(official_dir / "official_asset_metrics.csv")
+    overrides = load_code_overrides(official_dir)
     assets: list[Asset] = []
     for index, row in enumerate(rows, start=2):
         if row.get("is_active") != "1":
@@ -116,7 +90,14 @@ def load_catalog(official_dir: Path) -> list[Asset]:
         name = row.get("name", "")
         if asset_type not in {"driver", "constructor"} or not asset_id or not name:
             raise ValueError(f"official_asset_metrics.csv row {index}: invalid asset")
-        assets.append(Asset(asset_id, asset_type, name, site_code(asset_type, name), Decimal("0")))
+        assets.append(
+            Asset(
+                asset_id=asset_id,
+                type=asset_type,
+                name=name,
+                code=site_code(asset_type, name, asset_id, overrides),
+            )
+        )
     return assets
 
 
@@ -189,7 +170,11 @@ def parse_live_text(text: str, catalog: list[Asset], status: str = "auto") -> Li
                     f"{fmt_decimal(previous.score)} and {fmt_decimal(score)}"
                 )
             parsed[asset.asset_id] = Asset(
-                asset.asset_id, asset.type, asset.name, asset.code, score
+                asset_id=asset.asset_id,
+                type=asset.type,
+                name=asset.name,
+                code=asset.code,
+                score=score,
             )
             break
 
@@ -283,11 +268,11 @@ def snapshot_from_site_data(
                 continue
             assets.append(
                 Asset(
-                    catalog_asset.asset_id,
-                    asset_type,
-                    catalog_asset.name,
-                    code,
-                    decimal_value(row.get("totalPoints"), f"{code} totalPoints"),
+                    asset_id=catalog_asset.asset_id,
+                    type=asset_type,
+                    name=catalog_asset.name,
+                    code=code,
+                    score=decimal_value(row.get("totalPoints"), f"{code} totalPoints"),
                 )
             )
     if missing:
@@ -357,6 +342,8 @@ def fetch_live_html(timeout: float = 30.0) -> str:
         raise ValueError(f"Live page returned HTTP {exc.code}") from exc
     except URLError as exc:
         raise ValueError(f"Unable to fetch Live page: {exc.reason}") from exc
+    except OSError as exc:
+        raise ValueError(f"Unable to fetch Live page: {exc}") from exc
 
 
 def fetch_live_api(timeout: float = 30.0) -> object:
@@ -378,6 +365,8 @@ def fetch_live_api(timeout: float = 30.0) -> object:
         raise ValueError(f"Live scoring API returned HTTP {exc.code}") from exc
     except URLError as exc:
         raise ValueError(f"Unable to fetch Live scoring API: {exc.reason}") from exc
+    except OSError as exc:
+        raise ValueError(f"Unable to fetch Live scoring API: {exc}") from exc
     try:
         return json.loads(body)
     except json.JSONDecodeError as exc:
@@ -409,16 +398,16 @@ def save_snapshot(snapshot: LiveSnapshot, path: Path) -> None:
 
 def load_snapshot(path: Path) -> LiveSnapshot:
     """从缓存 CSV 读取 Live 分数快照。"""
-    rows = read_csv(path)
+    rows = read_csv(path, required=("asset_id", "type", "name", "code", "score"))
     if not rows:
         raise ValueError(f"Live score cache is empty: {path}")
     assets = tuple(
         Asset(
-            row["asset_id"],
-            row["type"],
-            row["name"],
-            row["code"],
-            decimal_value(row["score"], "score"),
+            asset_id=row["asset_id"],
+            type=row["type"],
+            name=row["name"],
+            code=row["code"],
+            score=decimal_value(row["score"], "score"),
         )
         for row in rows
     )
@@ -519,20 +508,18 @@ def prompt_selection(
     prompt: str, candidates: list[Asset], expected_count: int, prefix: str
 ) -> tuple[Asset, ...]:
     """循环询问资产，直到选择合法。"""
-    while True:
-        try:
-            return parse_selection(input(prompt), candidates, expected_count, prefix)
-        except ValueError as exc:
-            print(f"error: {exc}")
+    return prompt_loop(
+        prompt,
+        lambda raw: parse_selection(raw, candidates, expected_count, prefix),
+    )
 
 
 def prompt_two_x(drivers: tuple[Asset, ...]) -> Asset:
     """询问并校验 2x 车手必须来自已选车手。"""
-    while True:
-        try:
-            return match_asset(input("Select the 2x driver: "), list(drivers), "d")
-        except ValueError as exc:
-            print(f"error: {exc}")
+    return prompt_loop(
+        "Select the 2x driver: ",
+        lambda raw: match_asset(raw, list(drivers), "d"),
+    )
 
 
 def calculate_lineup(
@@ -688,6 +675,9 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print(file=sys.stderr)
+        return 130
     return 0
 
 
