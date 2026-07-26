@@ -11,6 +11,18 @@ fetch_public = load_script("fetch_fantasy_public")
 
 
 class FetchFantasyPublicTests(unittest.TestCase):
+    def test_fetch_json_wraps_socket_timeouts(self):
+        def fake_urlopen(request, timeout):
+            raise TimeoutError("timed out")
+
+        original_urlopen = fetch_public.urlopen
+        fetch_public.urlopen = fake_urlopen
+        try:
+            with self.assertRaisesRegex(RuntimeError, "Network error"):
+                fetch_public.fetch_json("https://example.test/feed.json", 1)
+        finally:
+            fetch_public.urlopen = original_urlopen
+
     def test_resolves_common_statistics_url(self):
         feed = {
             "Data": {

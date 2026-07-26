@@ -301,7 +301,9 @@ def replace_team_state(data_dir: Path, row: dict[str, str]) -> None:
 
 
 def load_round_scores(data_dir: Path, round_name: str) -> dict[str, Decimal]:
-    rows = read_csv(data_dir / "race_scores.csv")
+    rows = read_csv(
+        data_dir / "race_scores.csv", required=("round", "asset_id", "price_change")
+    )
     changes: dict[str, Decimal] = {}
     for row in rows:
         if row.get("round") == round_name:
@@ -435,16 +437,52 @@ def cmd_update_round(args: argparse.Namespace) -> int:
     return 0
 
 
+def validate_recorded_lineup(
+    data_dir: Path,
+    lineup_ids: list[str],
+    shadow_ids: list[str],
+    boost_asset_id: str,
+) -> None:
+    """校验记录的阵容：boost 必须在阵容内；资产库非空时校验 id 与 5+2 构成。"""
+    if boost_asset_id and boost_asset_id not in lineup_ids:
+        raise ValueError("--boost-asset-id must be one of the --lineup asset ids")
+    assets = load_assets(data_dir)
+    if not assets:
+        return
+    by_id = {asset.asset_id: asset for asset in assets}
+    unknown = [
+        asset_id for asset_id in lineup_ids + shadow_ids if asset_id not in by_id
+    ]
+    if unknown:
+        raise ValueError(
+            "Unknown asset ids (not in assets_state.csv): " + ", ".join(unknown)
+        )
+    drivers = [asset_id for asset_id in lineup_ids if by_id[asset_id].type == "driver"]
+    constructors = [
+        asset_id for asset_id in lineup_ids if by_id[asset_id].type == "constructor"
+    ]
+    if len(drivers) != 5 or len(constructors) != 2:
+        raise ValueError(
+            "--lineup must contain 5 drivers and 2 constructors; got "
+            f"{len(drivers)} drivers and {len(constructors)} constructors"
+        )
+
+
 def cmd_record_team(args: argparse.Namespace) -> int:
     ensure_headers(args.data_dir)
     if not args.lineup:
         raise ValueError("record-team requires --lineup with 5 driver ids and 2 constructor ids")
-    lineup_asset_ids = ",".join(split_ids(args.lineup))
-    if len(split_ids(lineup_asset_ids)) != 7:
+    lineup_ids = split_ids(args.lineup)
+    lineup_asset_ids = ",".join(lineup_ids)
+    if len(lineup_ids) != 7:
         raise ValueError("--lineup must contain exactly 7 asset ids: 5 drivers and 2 constructors")
-    shadow_lineup = ",".join(split_ids(args.shadow_lineup or ""))
+    shadow_ids = split_ids(args.shadow_lineup or "")
+    shadow_lineup = ",".join(shadow_ids)
     if args.chip.strip().lower() == "limitless" and not shadow_lineup:
         raise ValueError("chip=Limitless requires --shadow-lineup for budget impact tracking")
+    validate_recorded_lineup(
+        args.data_dir, lineup_ids, shadow_ids, args.boost_asset_id.strip()
+    )
 
     row = {
         "round": args.round,
@@ -475,7 +513,11 @@ def cmd_record_team(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    rows = [row for row in read_csv(args.data_dir / "race_scores.csv") if row.get("round") == args.round]
+    rows = [
+        row
+        for row in read_csv(args.data_dir / "race_scores.csv", required=RACE_SCORE_COLUMNS)
+        if row.get("round") == args.round
+    ]
     if not rows:
         raise ValueError(f"No race_scores.csv rows found for round {args.round}")
 

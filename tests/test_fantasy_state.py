@@ -2,7 +2,7 @@ import io
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from decimal import Decimal
 from pathlib import Path
 
@@ -13,7 +13,7 @@ fantasy_state = load_script("fantasy_state")
 
 
 def run_main(argv):
-    with redirect_stdout(io.StringIO()):
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
         return fantasy_state.main(argv)
 
 
@@ -259,6 +259,69 @@ class FantasyStateTests(unittest.TestCase):
             self.assertEqual(rows[0]["budget_before"], "5.1")
             self.assertEqual(rows[0]["boost_asset_id"], "drv2")
             self.assertEqual(rows[0]["transfer_penalty"], "0")
+
+    def test_record_team_rejects_boost_outside_lineup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp) / "data"
+            fantasy_state.ensure_headers(data_dir)
+
+            rc = run_main(
+                [
+                    "record-team",
+                    "--data-dir",
+                    str(data_dir),
+                    "--round",
+                    "Spain",
+                    "--team-id",
+                    "Team1",
+                    "--lineup",
+                    "drv1,drv2,drv3,drv4,drv5,con1,con2",
+                    "--boost-asset-id",
+                    "drv9",
+                ]
+            )
+            self.assertEqual(rc, 1)
+
+    def test_record_team_validates_ids_against_known_assets(self):
+        def asset_row(asset_id, asset_type):
+            return {
+                "asset_id": asset_id,
+                "type": asset_type,
+                "name": asset_id.upper(),
+                "current_price": "10.0",
+                "current_total_fpoints": "0",
+                "previous_race_fpoints": "0",
+                "last_race_fpoints": "0",
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp) / "data"
+            fantasy_state.ensure_headers(data_dir)
+            write_csv(
+                data_dir / "assets_state.csv",
+                fantasy_state.ASSET_COLUMNS,
+                [asset_row(f"drv{i}", "driver") for i in range(1, 7)]
+                + [asset_row(f"con{i}", "constructor") for i in range(1, 3)],
+            )
+
+            def record(lineup):
+                return run_main(
+                    [
+                        "record-team",
+                        "--data-dir",
+                        str(data_dir),
+                        "--round",
+                        "Spain",
+                        "--team-id",
+                        "Team1",
+                        "--lineup",
+                        lineup,
+                    ]
+                )
+
+            self.assertEqual(record("drv1,drv2,drv3,drv4,drv5,con1,zzz"), 1)
+            self.assertEqual(record("drv1,drv2,drv3,drv4,drv5,drv6,con1"), 1)
+            self.assertEqual(record("drv1,drv2,drv3,drv4,drv5,con1,con2"), 0)
 
 
 if __name__ == "__main__":

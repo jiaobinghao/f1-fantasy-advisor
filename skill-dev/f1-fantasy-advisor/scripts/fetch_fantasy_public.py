@@ -163,6 +163,8 @@ def fetch_json(url: str, timeout: int) -> dict[str, Any]:
         raise RuntimeError(f"HTTP {exc.code} fetching {url}") from exc
     except URLError as exc:
         raise RuntimeError(f"Network error fetching {url}: {exc.reason}") from exc
+    except OSError as exc:
+        raise RuntimeError(f"Network error fetching {url}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"Invalid JSON from {url}") from exc
 
@@ -678,7 +680,7 @@ def main(argv: list[str] | None = None) -> int:
             args.timeout,
             args.target_round_id,
         )
-    except (RuntimeError, ValueError) as exc:
+    except (RuntimeError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
