@@ -9,9 +9,22 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
 import auto_pilot_lineup as auto_pilot
 import best_lineup_with_transfers as transfers
 import live_lineup_score as live_scores
+from f1f_common import (
+    DEFAULT_FREE_TRANSFERS,
+    DEFAULT_PENALTY_PER_EXTRA,
+    Asset,
+    generate_lineups,
+    load_official_assets,
+    load_round_context,
+    normalize_name,
+)
 
 
 @dataclass(frozen=True)
@@ -20,16 +33,48 @@ class CombinedData:
 
     snapshot: live_scores.LiveSnapshot
     context: dict[str, str]
-    auto_assets: tuple[auto_pilot.Asset, ...]
-    transfer_assets: tuple[transfers.Asset, ...]
+    assets: tuple[Asset, ...]
+
+
+def normalize_race_name(value: str) -> str:
+    """把比赛名称归一化用于比较，去掉 Grand Prix/GP 后缀。"""
+    cleaned = normalize_name(value)
+    for suffix in (" grand prix", " gp"):
+        if cleaned.endswith(suffix):
+            cleaned = cleaned[: -len(suffix)]
+    return cleaned.strip()
 
 
 def validate_live_round(
     snapshot: live_scores.LiveSnapshot, context: dict[str, str]
 ) -> None:
-    """校验 Live 本站轮次与官方目标轮次一致。"""
+    """校验 Live 缓存与官方目标站是同一场比赛。
+
+    官方 target_round_id 是 F1 Fantasy 的 GamedayId，而 Live 缓存的
+    round_number 来自第三方站点的锦标赛站序，两套编号可能有偏移，
+    所以名称匹配优先，编号不一致只作告警；仅当名称缺失时才退回编号比较。
+    """
+    official_name = normalize_race_name(context.get("meeting_name", ""))
+    live_name = normalize_race_name(snapshot.race_name)
     official_round = context.get("target_round_id", "").strip()
     live_round = snapshot.round_number.strip()
+
+    if official_name and live_name:
+        if official_name != live_name:
+            raise ValueError(
+                "Race mismatch: official target is "
+                f"{context.get('meeting_name', '').strip()!r}, "
+                f"but Live cache is for {snapshot.race_name!r}"
+            )
+        if official_round and live_round and official_round != live_round:
+            print(
+                "warning: race names match but round ids differ "
+                f"(official {official_round}, live {live_round}); "
+                "the two feeds use different numbering schemes",
+                file=sys.stderr,
+            )
+        return
+
     if official_round and live_round and official_round != live_round:
         raise ValueError(
             f"Round mismatch: official target is {official_round}, "
@@ -37,9 +82,7 @@ def validate_live_round(
         )
 
 
-def live_score_map(
-    snapshot: live_scores.LiveSnapshot,
-) -> dict[str, live_scores.Asset]:
+def live_score_map(snapshot: live_scores.LiveSnapshot) -> dict[str, Asset]:
     """把 Live 快照转换成按 asset id 查询的映射。"""
     scores = {asset.asset_id: asset for asset in snapshot.assets}
     if len(scores) != len(snapshot.assets):
@@ -47,26 +90,11 @@ def live_score_map(
     return scores
 
 
-def merge_auto_assets(
-    assets: list[auto_pilot.Asset], scores: dict[str, live_scores.Asset]
-) -> tuple[auto_pilot.Asset, ...]:
-    """保留 Auto-Pilot 官方价格并覆盖为本站 Live 分数。"""
-    merged: list[auto_pilot.Asset] = []
-    for asset in assets:
-        live_asset = scores.get(asset.asset_id)
-        if live_asset is None:
-            raise ValueError(f"Live cache is missing {asset.name} ({asset.asset_id})")
-        if live_asset.type != asset.type:
-            raise ValueError(f"Asset type mismatch for {asset.name} ({asset.asset_id})")
-        merged.append(replace(asset, score=live_asset.score))
-    return tuple(merged)
-
-
-def merge_transfer_assets(
-    assets: list[transfers.Asset], scores: dict[str, live_scores.Asset]
-) -> tuple[transfers.Asset, ...]:
-    """保留换人模型的官方价格与上一站 id，并覆盖本站分数。"""
-    merged: list[transfers.Asset] = []
+def merge_live_scores(
+    assets: list[Asset], scores: dict[str, Asset]
+) -> tuple[Asset, ...]:
+    """保留官方价格与上一站 id，并覆盖为本站 Live 分数。"""
+    merged: list[Asset] = []
     for asset in assets:
         live_asset = scores.get(asset.asset_id)
         if live_asset is None:
@@ -80,14 +108,13 @@ def merge_transfer_assets(
 def load_combined_data(official_dir: Path, cache_path: Path) -> CombinedData:
     """读取上一站官方价格，并按 asset id 合并本站 Live 分数。"""
     snapshot = live_scores.load_snapshot(cache_path)
-    context = auto_pilot.load_round_context(official_dir)
+    context = load_round_context(official_dir)
     validate_live_round(snapshot, context)
     scores = live_score_map(snapshot)
     return CombinedData(
         snapshot=snapshot,
         context=context,
-        auto_assets=merge_auto_assets(auto_pilot.load_assets(official_dir), scores),
-        transfer_assets=merge_transfer_assets(transfers.load_assets(official_dir), scores),
+        assets=merge_live_scores(load_official_assets(official_dir), scores),
     )
 
 
@@ -114,35 +141,9 @@ def run_budget_mode(args: argparse.Namespace, data: CombinedData) -> None:
         raise ValueError("budget must be positive")
     if args.top <= 0:
         raise ValueError("--top must be positive")
-    lineups = auto_pilot.generate_lineups(list(data.auto_assets), budget, args.top)
+    lineups = generate_lineups(list(data.assets), budget, args.top)
     print_sources(data)
     auto_pilot.print_report(lineups, budget, data.context)
-
-
-def transfer_inputs(
-    args: argparse.Namespace, assets: list[transfers.Asset]
-) -> tuple[tuple[str, ...], Decimal, tuple[str, ...]]:
-    """读取交互式或命令行形式的上周阵容、预算与排除项。"""
-    if args.interactive:
-        return transfers.interactive_previous_lineup_budget_and_exclusions(assets)
-
-    if not args.previous_lineup:
-        raise ValueError("provide --previous-lineup or use --interactive")
-    previous_lineup = transfers.validate_previous_lineup(args.previous_lineup)
-    if args.remaining_bank:
-        remaining_bank = transfers.decimal_value(args.remaining_bank, "remaining bank")
-        budget = transfers.budget_from_remaining_bank(
-            assets, previous_lineup, remaining_bank
-        )
-    elif args.budget:
-        budget = transfers.decimal_value(args.budget, "budget")
-    else:
-        raise ValueError("provide budget or --remaining-bank")
-
-    drivers = [asset for asset in assets if asset.type == "driver"]
-    constructors = [asset for asset in assets if asset.type == "constructor"]
-    excluded = transfers.parse_exclusion_selection(args.exclude, drivers, constructors)
-    return previous_lineup, budget, tuple(asset.asset_id for asset in excluded)
 
 
 def run_transfers_mode(args: argparse.Namespace, data: CombinedData) -> None:
@@ -155,8 +156,10 @@ def run_transfers_mode(args: argparse.Namespace, data: CombinedData) -> None:
     if penalty < 0:
         raise ValueError("--penalty-per-extra must be non-negative")
 
-    assets = list(data.transfer_assets)
-    previous_lineup, budget, excluded_ids = transfer_inputs(args, assets)
+    assets = list(data.assets)
+    previous_lineup, budget, excluded_ids = transfers.resolve_transfer_inputs(
+        args, assets
+    )
     if budget <= 0:
         raise ValueError("budget must be positive")
     excluded_set = set(excluded_ids)
@@ -214,13 +217,39 @@ def build_parser() -> argparse.ArgumentParser:
         "transfers", help="Optimize live score after transfer penalties"
     )
     transfer.add_argument("budget", nargs="?", help="Total cost cap, e.g. 112")
-    transfer.add_argument("--previous-lineup", default="")
-    transfer.add_argument("--interactive", action="store_true")
-    transfer.add_argument("--remaining-bank", "--remain", default="")
-    transfer.add_argument("--exclude", default="")
-    transfer.add_argument("--free-transfers", type=int, default=2)
-    transfer.add_argument("--penalty-per-extra", default="10")
-    transfer.add_argument("--top", type=int, default=5)
+    transfer.add_argument(
+        "--previous-lineup",
+        default="",
+        help="Previous 7 asset ids: 5 drivers and 2 constructors",
+    )
+    transfer.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Pick previous lineup by number/name, then enter remaining bank",
+    )
+    transfer.add_argument(
+        "--remaining-bank",
+        "--remain",
+        default="",
+        help="Remaining bank; total budget becomes previous lineup price plus this value",
+    )
+    transfer.add_argument(
+        "--exclude",
+        default="",
+        help="Assets unavailable for this race; supports names, ids, abbreviations, d1/c1",
+    )
+    transfer.add_argument(
+        "--free-transfers",
+        type=int,
+        default=DEFAULT_FREE_TRANSFERS,
+        help="Free transfers before penalties apply",
+    )
+    transfer.add_argument(
+        "--penalty-per-extra",
+        default=DEFAULT_PENALTY_PER_EXTRA,
+        help="Points deducted per extra transfer",
+    )
+    transfer.add_argument("--top", type=int, default=5, help="Number of lineups to print")
     add_data_arguments(transfer)
     return parser
 
@@ -237,6 +266,9 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print(file=sys.stderr)
+        return 130
     return 0
 
 

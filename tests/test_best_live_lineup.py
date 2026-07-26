@@ -1,6 +1,8 @@
+import io
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from decimal import Decimal
 from pathlib import Path
 
@@ -31,7 +33,7 @@ def metric_row(asset_id, asset_type, name, live_score):
 
 
 class BestLiveLineupTests(unittest.TestCase):
-    def write_fixture(self, root, live_round="9"):
+    def write_fixture(self, root, live_round="9", live_name="Fixture GP"):
         rows = [
             metric_row("d1", "driver", "Driver One", "50"),
             metric_row("d2", "driver", "Driver Two", "40"),
@@ -68,7 +70,7 @@ class BestLiveLineupTests(unittest.TestCase):
                     "status": "finalized",
                     "source": "https://example.test/api/live-scoring",
                     "recorded_at": "2026-07-05T20:00:00Z",
-                    "race_name": "Fixture GP",
+                    "race_name": live_name,
                     "round_number": live_round,
                 }
             )
@@ -80,7 +82,7 @@ class BestLiveLineupTests(unittest.TestCase):
             official_dir, cache = self.write_fixture(Path(tmp))
             data = best_live_lineup.load_combined_data(official_dir, cache)
 
-        driver_six = next(asset for asset in data.auto_assets if asset.asset_id == "d6")
+        driver_six = next(asset for asset in data.assets if asset.asset_id == "d6")
         self.assertEqual(driver_six.price, Decimal("10"))
         self.assertEqual(driver_six.score, Decimal("100"))
 
@@ -88,8 +90,8 @@ class BestLiveLineupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             official_dir, cache = self.write_fixture(Path(tmp))
             data = best_live_lineup.load_combined_data(official_dir, cache)
-            lineups = best_live_lineup.auto_pilot.generate_lineups(
-                list(data.auto_assets), Decimal("70"), 1
+            lineups = best_live_lineup.generate_lineups(
+                list(data.assets), Decimal("70"), 1
             )
 
         selected = {
@@ -106,7 +108,7 @@ class BestLiveLineupTests(unittest.TestCase):
             data = best_live_lineup.load_combined_data(official_dir, cache)
             previous = ("d1", "d2", "d3", "d4", "d5", "c1", "c2")
             lineups = best_live_lineup.transfers.generate_best_lineups(
-                list(data.transfer_assets),
+                list(data.assets),
                 Decimal("70"),
                 previous,
                 free_transfers=1,
@@ -119,9 +121,29 @@ class BestLiveLineupTests(unittest.TestCase):
         self.assertEqual(lineup.transfer_penalty, Decimal("10"))
         self.assertEqual(lineup.net_score, Decimal("430"))
 
-    def test_rejects_mismatched_rounds(self):
+    def test_rejects_mismatched_race_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir, cache = self.write_fixture(
+                Path(tmp), live_round="9", live_name="Other GP"
+            )
+            with self.assertRaisesRegex(ValueError, "Race mismatch"):
+                best_live_lineup.load_combined_data(official_dir, cache)
+
+    def test_same_race_with_different_round_ids_only_warns(self):
         with tempfile.TemporaryDirectory() as tmp:
             official_dir, cache = self.write_fixture(Path(tmp), live_round="10")
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                data = best_live_lineup.load_combined_data(official_dir, cache)
+
+        self.assertEqual(len(data.assets), 9)
+        self.assertIn("round ids differ", stderr.getvalue())
+
+    def test_rejects_mismatched_rounds_when_names_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir, cache = self.write_fixture(
+                Path(tmp), live_round="10", live_name=""
+            )
             with self.assertRaisesRegex(ValueError, "Round mismatch"):
                 best_live_lineup.load_combined_data(official_dir, cache)
 
