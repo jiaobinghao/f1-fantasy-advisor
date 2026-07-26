@@ -2,7 +2,7 @@ import io
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from decimal import Decimal
 from pathlib import Path
 
@@ -33,7 +33,7 @@ def metric_row(asset_id, asset_type, name, live_score):
 
 
 class BestLiveLineupTests(unittest.TestCase):
-    def write_fixture(self, root, live_round="9", live_name="Fixture GP"):
+    def write_fixture(self, root, live_round="9", live_name="Fixture GP", status="finalized"):
         rows = [
             metric_row("d1", "driver", "Driver One", "50"),
             metric_row("d2", "driver", "Driver Two", "40"),
@@ -67,7 +67,7 @@ class BestLiveLineupTests(unittest.TestCase):
                     "name": row["name"],
                     "code": row["asset_id"].upper(),
                     "score": row["live_score"],
-                    "status": "finalized",
+                    "status": status,
                     "source": "https://example.test/api/live-scoring",
                     "recorded_at": "2026-07-05T20:00:00Z",
                     "race_name": live_name,
@@ -146,6 +146,48 @@ class BestLiveLineupTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "Round mismatch"):
                 best_live_lineup.load_combined_data(official_dir, cache)
+
+    def test_cli_budget_mode_labels_provisional_scores(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir, cache = self.write_fixture(Path(tmp), status="provisional")
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                rc = best_live_lineup.main(
+                    [
+                        "budget",
+                        "70",
+                        "--official-dir",
+                        str(official_dir),
+                        "--cache",
+                        str(cache),
+                    ]
+                )
+
+        output = stdout.getvalue()
+        self.assertEqual(rc, 0)
+        self.assertIn("status: PROVISIONAL", output)
+        self.assertIn("Live scores are provisional", output)
+
+    def test_cli_transfers_mode_runs_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir, cache = self.write_fixture(Path(tmp))
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                rc = best_live_lineup.main(
+                    [
+                        "transfers",
+                        "70",
+                        "--previous-lineup",
+                        "d1,d2,d3,d4,d5,c1,c2",
+                        "--official-dir",
+                        str(official_dir),
+                        "--cache",
+                        str(cache),
+                    ]
+                )
+
+        self.assertEqual(rc, 0)
+        self.assertIn("net score after transfers", stdout.getvalue())
 
 
 if __name__ == "__main__":

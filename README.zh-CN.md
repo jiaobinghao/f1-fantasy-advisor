@@ -104,6 +104,22 @@ skill-dev/f1-fantasy-advisor/
 
 `now.md` 用于本地个人工作笔记，已被 Git 忽略。
 
+本项目使用 MIT 许可证（见 `LICENSE`）。
+
+### 近期行为变化
+
+- 数字解析与格式化改为全部脚本共享：四舍五入后为负零的值显示为 `0`；
+  价格/分数清洗在所有脚本统一接受 `$`、`M`、`,`、`+`、`▲`、`▼`。
+- `best_live_lineup.py` 校验 Live 缓存时改为优先比较比赛名称；同一场比赛
+  但轮次编号不同只会告警，因为官方 GamedayId 和 Live 站点的站序是两套编号。
+- `fantasy_state.py record-team` 会拒绝不在阵容内的 boost id；当
+  `assets_state.csv` 有数据时，还会拒绝未知 asset id 或不是 5 车手 + 2 车队
+  的阵容。
+- Live 页面的车手/车队三字母代码可以用 `data/official/asset_codes.csv`
+  覆盖（表头模板在 `data-templates/`）；内置表覆盖当前车队和不规则车手代码。
+- 交互模式在输入流结束（退出码 1）或 Ctrl-C（退出码 130）时干净退出，
+  不再打印 traceback。
+
 ## 工具说明
 
 ### 官方数据收集

@@ -126,6 +126,26 @@ skill-dev/f1-fantasy-advisor/
 
 `now.md` is for local personal working notes and is ignored by Git.
 
+This project is licensed under the MIT License (see `LICENSE`).
+
+### Recent Behavior Changes
+
+- Numeric parsing and formatting are now shared by all scripts: values that
+  round to negative zero print as `0`, and price/score cleanup accepts
+  `$`, `M`, `,`, `+`, `▲`, `▼` everywhere.
+- `best_live_lineup.py` validates the Live cache against the official target
+  by race name first; a round-id difference on the same race is only a
+  warning, because the official GamedayId and the Live site's round number
+  are different numbering schemes.
+- `fantasy_state.py record-team` rejects a boost id outside the lineup, and
+  (once `assets_state.csv` has data) unknown asset ids or a lineup that is
+  not 5 drivers plus 2 constructors.
+- Live-page driver/constructor codes can be overridden in
+  `data/official/asset_codes.csv` (header template in `data-templates/`);
+  built-in tables cover the current constructors and irregular driver codes.
+- Interactive prompts exit cleanly on end-of-input (exit code 1) and Ctrl-C
+  (exit code 130) instead of printing a traceback.
+
 ## Tool Commands
 
 ### Official Data Fetch
