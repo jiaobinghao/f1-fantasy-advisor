@@ -4,13 +4,23 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import sys
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal
 from itertools import combinations
 from pathlib import Path
 from typing import Iterable
+
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from f1f_common import (
+    decimal_value,
+    fmt_decimal,
+    load_round_context,
+    read_csv,
+)
 
 
 @dataclass(frozen=True)
@@ -31,46 +41,6 @@ class Lineup:
     two_x_driver: Asset
     two_x_bonus: Decimal
     final_score: Decimal
-
-
-def decimal_value(raw: object, field: str) -> Decimal:
-    """把 CSV 里的数字文本转成 Decimal。"""
-    value = "" if raw is None else str(raw).strip()
-    value = value.replace("$", "").replace("M", "").replace(",", "").replace("+", "")
-    if value == "":
-        raise ValueError(f"Missing numeric value for {field}")
-    try:
-        return Decimal(value)
-    except InvalidOperation as exc:
-        raise ValueError(f"Invalid numeric value for {field}: {raw!r}") from exc
-
-
-def fmt_decimal(value: Decimal, places: str = "0.1") -> str:
-    """按网页价格/分数习惯格式化 Decimal。"""
-    quantized = value.quantize(Decimal(places), rounding=ROUND_HALF_UP)
-    if quantized == quantized.to_integral_value():
-        return str(quantized.quantize(Decimal("1")))
-    return format(quantized.normalize(), "f")
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    """读取 CSV 并去掉单元格两端空白。"""
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return []
-        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
-
-
-def load_round_context(official_dir: Path) -> dict[str, str]:
-    """读取本站信息；文件不存在时返回空字典。"""
-    path = official_dir / "official_round_context.csv"
-    if not path.exists():
-        return {}
-    rows = read_csv(path)
-    return rows[0] if rows else {}
 
 
 def load_assets(official_dir: Path) -> list[Asset]:

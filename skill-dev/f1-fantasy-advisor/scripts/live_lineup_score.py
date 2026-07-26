@@ -12,10 +12,23 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+import f1f_common
+from f1f_common import (
+    decimal_value,
+    initials_for,
+    normalize_name,
+    read_csv,
+)
+from f1f_common import split_ids as split_selection
 
 
 SOURCE_URL = "https://f1fantasytools.com/live"
@@ -76,28 +89,9 @@ class LineupScore:
     final_score: Decimal
 
 
-def decimal_value(raw: object, field: str) -> Decimal:
-    """把文本数字转换成 Decimal。"""
-    value = "" if raw is None else str(raw).strip()
-    value = value.replace("+", "").replace(",", "")
-    if not value:
-        raise ValueError(f"Missing numeric value for {field}")
-    try:
-        return Decimal(value)
-    except InvalidOperation as exc:
-        raise ValueError(f"Invalid numeric value for {field}: {raw!r}") from exc
-
-
 def fmt_decimal(value: Decimal) -> str:
-    """把 Decimal 格式化成紧凑文本。"""
-    if value == value.to_integral_value():
-        return str(value.quantize(Decimal("1")))
-    return format(value.normalize(), "f")
-
-
-def normalize_name(value: str) -> str:
-    """把名称标准化为小写单空格文本。"""
-    return " ".join(value.lower().replace(".", "").split())
+    """把 Decimal 格式化成紧凑文本，保留原始精度。"""
+    return f1f_common.fmt_decimal(value, places=None)
 
 
 def site_code(asset_type: str, name: str) -> str:
@@ -108,17 +102,6 @@ def site_code(asset_type: str, name: str) -> str:
             raise ValueError(f"Unknown constructor code for {name!r}")
         return CONSTRUCTOR_CODES[normalized]
     return normalized.split()[-1][:3].upper()
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    """读取 CSV 并清理字段两端空白。"""
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return []
-        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
 
 
 def load_catalog(official_dir: Path) -> list[Asset]:
@@ -475,17 +458,6 @@ def read_windows_clipboard() -> str:
     if not result.stdout.strip():
         raise ValueError("Windows clipboard is empty")
     return result.stdout
-
-
-def split_selection(value: str) -> list[str]:
-    """把逗号、分号、斜杠分隔的选择拆成列表。"""
-    cleaned = value.replace(";", ",").replace("/", ",").replace("|", ",")
-    return [item.strip() for item in cleaned.split(",") if item.strip()]
-
-
-def initials_for(value: str) -> str:
-    """生成名称首字母缩写。"""
-    return "".join(part[0] for part in normalize_name(value).split() if part)
 
 
 def match_asset(token: str, candidates: list[Asset], prefix: str) -> Asset:

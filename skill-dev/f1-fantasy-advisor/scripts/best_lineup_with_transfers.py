@@ -4,13 +4,27 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import sys
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal
 from itertools import combinations
 from pathlib import Path
 from typing import Iterable
+
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from f1f_common import (
+    decimal_value,
+    fmt_decimal,
+    initials_for,
+    load_round_context,
+    normalize_name,
+    prompt_loop,
+    read_csv,
+    split_ids,
+)
 
 
 @dataclass(frozen=True)
@@ -38,52 +52,6 @@ class TransferLineup:
     net_score: Decimal
     transfers_in: tuple[Asset, ...]
     transfers_out: tuple[str, ...]
-
-
-def decimal_value(raw: object, field: str) -> Decimal:
-    """把 CSV 或命令行里的数字转成 Decimal。"""
-    value = "" if raw is None else str(raw).strip()
-    value = value.replace("$", "").replace("M", "").replace(",", "").replace("+", "")
-    if value == "":
-        raise ValueError(f"Missing numeric value for {field}")
-    try:
-        return Decimal(value)
-    except InvalidOperation as exc:
-        raise ValueError(f"Invalid numeric value for {field}: {raw!r}") from exc
-
-
-def fmt_decimal(value: Decimal, places: str = "0.1") -> str:
-    """把 Decimal 格式化成紧凑的一位小数文本。"""
-    quantized = value.quantize(Decimal(places), rounding=ROUND_HALF_UP)
-    if quantized == quantized.to_integral_value():
-        return str(quantized.quantize(Decimal("1")))
-    return format(quantized.normalize(), "f")
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    """读取 CSV 并清理每个字段两端空白。"""
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return []
-        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
-
-
-def split_ids(value: str) -> list[str]:
-    """把逗号、分号或斜杠分隔的 asset id 文本拆成列表。"""
-    cleaned = value.replace(";", ",").replace("|", ",").replace("/", ",")
-    return [item.strip() for item in cleaned.split(",") if item.strip()]
-
-
-def load_round_context(official_dir: Path) -> dict[str, str]:
-    """读取目标周上下文；没有文件时返回空字典。"""
-    path = official_dir / "official_round_context.csv"
-    if not path.exists():
-        return {}
-    rows = read_csv(path)
-    return rows[0] if rows else {}
 
 
 def load_assets(official_dir: Path) -> list[Asset]:
@@ -121,16 +89,6 @@ def validate_previous_lineup(raw_lineup: str) -> tuple[str, ...]:
     if len(set(asset_ids)) != 7:
         raise ValueError("--previous-lineup must not contain duplicate asset ids")
     return tuple(asset_ids)
-
-
-def normalize_name(value: str) -> str:
-    """把名称转成适合模糊匹配的格式。"""
-    return " ".join(value.lower().replace(".", "").split())
-
-
-def initials_for(value: str) -> str:
-    """生成名称首字母缩写，例如 Lewis Hamilton -> lh。"""
-    return "".join(part[0] for part in normalize_name(value).split() if part)
 
 
 def match_asset_token(
@@ -263,35 +221,23 @@ def print_asset_choices(title: str, candidates: list[Asset]) -> None:
 
 def prompt_asset_selection(candidates: list[Asset], expected_count: int, label: str) -> tuple[Asset, ...]:
     """循环询问用户选择资产，直到输入合法。"""
-    while True:
-        raw_selection = input(
-            f"Select {expected_count} {label}s by number, id, name, or abbreviation: "
-        )
-        try:
-            return parse_asset_selection(raw_selection, candidates, expected_count, label)
-        except ValueError as exc:
-            print(f"error: {exc}")
+    return prompt_loop(
+        f"Select {expected_count} {label}s by number, id, name, or abbreviation: ",
+        lambda raw: parse_asset_selection(raw, candidates, expected_count, label),
+    )
 
 
 def prompt_decimal(prompt: str, field: str) -> Decimal:
     """循环询问一个 Decimal 数字。"""
-    while True:
-        try:
-            return decimal_value(input(prompt), field)
-        except ValueError as exc:
-            print(f"error: {exc}")
+    return prompt_loop(prompt, lambda raw: decimal_value(raw, field))
 
 
 def prompt_excluded_assets(drivers: list[Asset], constructors: list[Asset]) -> tuple[Asset, ...]:
     """询问本场不能选择的资产。"""
-    while True:
-        raw_selection = input(
-            "Unavailable picks for this race (optional; names/ids, or d1/c1 list numbers): "
-        )
-        try:
-            return parse_exclusion_selection(raw_selection, drivers, constructors)
-        except ValueError as exc:
-            print(f"error: {exc}")
+    return prompt_loop(
+        "Unavailable picks for this race (optional; names/ids, or d1/c1 list numbers): ",
+        lambda raw: parse_exclusion_selection(raw, drivers, constructors),
+    )
 
 
 def interactive_previous_lineup_budget_and_exclusions(
@@ -602,6 +548,9 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print(file=sys.stderr)
+        return 130
     return 0
 
 

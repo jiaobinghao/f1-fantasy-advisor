@@ -4,12 +4,24 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import sys
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Iterable
+
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from f1f_common import (
+    decimal_value,
+    fmt_decimal,
+    normalize_name,
+    read_csv,
+    split_ids,
+    write_csv,
+)
 
 
 ASSET_COLUMNS = [
@@ -79,63 +91,8 @@ class RaceResult:
     price_after: Decimal
 
 
-def decimal_value(raw: object, field: str) -> Decimal:
-    value = "" if raw is None else str(raw).strip()
-    value = (
-        value.replace("$", "")
-        .replace("M", "")
-        .replace(",", "")
-        .replace("▲", "")
-        .replace("▼", "")
-        .replace("+", "")
-    )
-    if value == "":
-        raise ValueError(f"Missing numeric value for {field}")
-    try:
-        return Decimal(value)
-    except InvalidOperation as exc:
-        raise ValueError(f"Invalid numeric value for {field}: {raw!r}") from exc
-
-
-def fmt_decimal(value: Decimal, places: str = "0.1") -> str:
-    quantized = value.quantize(Decimal(places), rounding=ROUND_HALF_UP)
-    if quantized == quantized.to_integral_value():
-        return str(quantized.quantize(Decimal("1")))
-    return format(quantized.normalize(), "f")
-
-
 def fmt_ppm(value: Decimal) -> str:
     return format(value.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP), "f")
-
-
-def normalize_name(value: str) -> str:
-    return " ".join(value.strip().lower().replace(".", "").split())
-
-
-def split_ids(value: str) -> list[str]:
-    if not value:
-        return []
-    cleaned = value.replace(";", ",").replace("|", ",").replace("/", ",")
-    return [item.strip() for item in cleaned.split(",") if item.strip()]
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return []
-        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
-
-
-def write_csv(path: Path, fieldnames: list[str], rows: Iterable[dict[str, str]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
 def ensure_headers(data_dir: Path) -> None:

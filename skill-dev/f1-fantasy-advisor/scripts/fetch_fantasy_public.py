@@ -4,16 +4,21 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from f1f_common import ZERO, decimal_value, fmt_decimal, write_csv
 
 
 WEB_CONFIG_URL = "https://fantasy.formula1.com/feeds/v2/apps/web_config.json"
@@ -131,7 +136,6 @@ PRICE_BIG_RISE_AVG = Decimal("1.2")
 PRICE_SMALL_RISE_AVG = Decimal("0.9")
 PRICE_AVOID_BIG_FALL_AVG = Decimal("0.6")
 SCORE_THRESHOLD_PLACES = "0.01"
-ZERO = Decimal("0")
 
 
 @dataclass(frozen=True)
@@ -163,25 +167,6 @@ def fetch_json(url: str, timeout: int) -> dict[str, Any]:
         raise RuntimeError(f"Invalid JSON from {url}") from exc
 
 
-def decimal_value(raw: object, field: str) -> Decimal:
-    value = "" if raw is None else str(raw).strip()
-    if value == "":
-        raise ValueError(f"Missing numeric value for {field}")
-    try:
-        return Decimal(value)
-    except InvalidOperation as exc:
-        raise ValueError(f"Invalid numeric value for {field}: {raw!r}") from exc
-
-
-def fmt_decimal(value: Decimal, places: str = "0.1") -> str:
-    quantized = value.quantize(Decimal(places), rounding=ROUND_HALF_UP)
-    if quantized == ZERO:
-        return "0"
-    if quantized == quantized.to_integral_value():
-        return str(quantized.quantize(Decimal("1")))
-    return format(quantized.normalize(), "f")
-
-
 def fmt_score_threshold(value: Decimal) -> str:
     return fmt_decimal(value, SCORE_THRESHOLD_PLACES)
 
@@ -190,15 +175,6 @@ def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
         "+00:00", "Z"
     )
-
-
-def write_csv(path: Path, fieldnames: list[str], rows: Iterable[dict[str, str]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
 def resolve_common_statistics_url(config_feed: dict[str, Any]) -> str:
