@@ -145,3 +145,52 @@ budget. The script automatically accounts for extra-transfer penalties:
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --interactive
 ```
+
+### Live Race-Week Lineup Score
+
+Use two separate commands. First fetch and cache the hydrated current scores
+from the public `/api/live-scoring` endpoint used by the Live page. Each run
+makes one request:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch
+```
+
+Then interactively select 5 drivers, 2 constructors, and the 2x driver from the
+cached scores:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --interactive
+```
+
+Combine cached Live scores with the previous round's official `last1_price` and
+find the theoretical highest-scoring lineup for this round:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py budget 112
+```
+
+Or enter the previous lineup and remaining bank interactively, then optimize
+this round's score after extra-transfer penalties:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py transfers --interactive
+```
+
+The bridge does not modify `auto_pilot_lineup.py` or
+`best_lineup_with_transfers.py`. It rejects mismatched Live and official target
+rounds. Provisional Live scores remain usable but are clearly labeled.
+
+Use clipboard import as a fallback if the page structure or network changes:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --clipboard
+```
+
+Import copied table text, endpoint JSON, or complete saved HTML from a file.
+Complete HTML contains only the initial page snapshot and may be older than the
+hydrated endpoint data:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --input live_scores.txt
+```

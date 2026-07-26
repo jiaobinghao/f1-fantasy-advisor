@@ -123,3 +123,48 @@ python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/best_lineup_with_transfers.py --interactive
 ```
+
+# Live 本站阵容计分
+
+分成两个独立步骤。首先通过 Live 页面自身使用的公开
+`/api/live-scoring` 更新接口获取水合后的最新分数并缓存（每次运行请求一次）：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch
+```
+
+随后从缓存交互选择 5 位车手、2 个车队和 2x 车手，并计算本站得分：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --interactive
+```
+
+把缓存的本站 Live 分数与官方快照中的上一站 `last1_price` 合并后，可直接求
+本站理论最高分阵容：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py budget 112
+```
+
+也可以交互输入上周阵容和剩余资金，求扣除超额换人罚分后的本站最高分阵容：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py transfers --interactive
+```
+
+该桥接脚本不会修改 `auto_pilot_lineup.py` 或
+`best_lineup_with_transfers.py`。它会校验 Live 轮次与官方目标轮次一致；Live
+状态尚未 finalized 时仍可分析，但结果会标记为 provisional。
+
+页面结构变化或网络不可用时，可以从剪贴板导入作为兜底：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --clipboard
+```
+
+也可以把网页表格文本、接口 JSON 或完整 HTML 保存成文件后导入。完整 HTML
+只包含页面初始快照，可能比水合后的接口数据旧：
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/live_lineup_score.py --fetch --input live_scores.txt
+```
