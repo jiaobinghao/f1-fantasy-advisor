@@ -1,5 +1,3 @@
-import csv
-import importlib.util
 import json
 import sys
 import tempfile
@@ -7,19 +5,10 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from script_loader import load_script
 
-SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "skill-dev"
-    / "f1-fantasy-advisor"
-    / "scripts"
-    / "live_lineup_score.py"
-)
-SPEC = importlib.util.spec_from_file_location("live_lineup_score", SCRIPT)
-live_lineup_score = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-sys.modules[SPEC.name] = live_lineup_score
-SPEC.loader.exec_module(live_lineup_score)
+live_lineup_score = load_script("live_lineup_score")
 
 
 def asset(asset_id, asset_type, name, code):

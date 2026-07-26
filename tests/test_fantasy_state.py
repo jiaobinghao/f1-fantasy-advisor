@@ -1,32 +1,20 @@
-import csv
-import importlib.util
+import io
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from decimal import Decimal
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from script_loader import load_script, write_csv
 
-SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "skill-dev"
-    / "f1-fantasy-advisor"
-    / "scripts"
-    / "fantasy_state.py"
-)
-SPEC = importlib.util.spec_from_file_location("fantasy_state", SCRIPT)
-fantasy_state = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-sys.modules[SPEC.name] = fantasy_state
-SPEC.loader.exec_module(fantasy_state)
+fantasy_state = load_script("fantasy_state")
 
 
-def write_csv(path, fieldnames, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
+def run_main(argv):
+    with redirect_stdout(io.StringIO()):
+        return fantasy_state.main(argv)
 
 
 class FantasyStateTests(unittest.TestCase):
@@ -117,7 +105,7 @@ class FantasyStateTests(unittest.TestCase):
                 [{"asset_id": "con_exp", "total_fpoints": "230"}],
             )
 
-            rc = fantasy_state.main(
+            rc = run_main(
                 [
                     "update-round",
                     "--data-dir",
@@ -220,7 +208,7 @@ class FantasyStateTests(unittest.TestCase):
             data_dir = Path(tmp) / "data"
             fantasy_state.ensure_headers(data_dir)
 
-            rc = fantasy_state.main(
+            rc = run_main(
                 [
                     "record-team",
                     "--data-dir",
@@ -245,7 +233,7 @@ class FantasyStateTests(unittest.TestCase):
             )
             self.assertEqual(rc, 0)
 
-            rc = fantasy_state.main(
+            rc = run_main(
                 [
                     "record-team",
                     "--data-dir",

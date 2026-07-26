@@ -1,23 +1,13 @@
 import csv
-import importlib.util
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from script_loader import load_script
 
-SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "skill-dev"
-    / "f1-fantasy-advisor"
-    / "scripts"
-    / "fetch_fantasy_public.py"
-)
-SPEC = importlib.util.spec_from_file_location("fetch_fantasy_public", SCRIPT)
-fetch_public = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-sys.modules[SPEC.name] = fetch_public
-SPEC.loader.exec_module(fetch_public)
+fetch_public = load_script("fetch_fantasy_public")
 
 
 class FetchFantasyPublicTests(unittest.TestCase):

@@ -1,85 +1,33 @@
-import csv
-import importlib.util
 import sys
 import tempfile
 import unittest
 from decimal import Decimal
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from script_loader import METRIC_COLUMNS, load_script, write_csv
+from script_loader import metric_row as base_metric_row
 
-SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "skill-dev"
-    / "f1-fantasy-advisor"
-    / "scripts"
-    / "best_live_lineup.py"
-)
-sys.path.insert(0, str(SCRIPT.parent))
-SPEC = importlib.util.spec_from_file_location("best_live_lineup", SCRIPT)
-best_live_lineup = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-sys.modules[SPEC.name] = best_live_lineup
-SPEC.loader.exec_module(best_live_lineup)
-
-
-METRIC_COLUMNS = [
-    "target_round_id",
-    "asset_id",
-    "type",
-    "name",
-    "current_price",
-    "last1_price",
-    "last2_price",
-    "current_total_fpoints",
-    "rank",
-    "last1_round_id",
-    "last1_fpoints",
-    "last1_price_change",
-    "last2_round_id",
-    "last2_fpoints",
-    "last2_price_change",
-    "rolling2_fpoints",
-    "score_floor_big_rise",
-    "score_floor_small_rise",
-    "score_floor_avoid_big_fall",
-    "is_active",
-    "fetched_at",
-]
-
-
-def write_csv(path, fieldnames, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
+best_live_lineup = load_script("best_live_lineup")
 
 
 def metric_row(asset_id, asset_type, name, live_score):
-    return {
-        "target_round_id": "9",
-        "asset_id": asset_id,
-        "type": asset_type,
-        "name": name,
-        "current_price": "99",
-        "last1_price": "10",
-        "last2_price": "9",
-        "current_total_fpoints": "0",
-        "rank": "",
-        "last1_round_id": "8",
-        "last1_fpoints": "-999",
-        "last1_price_change": "0",
-        "last2_round_id": "7",
-        "last2_fpoints": "0",
-        "last2_price_change": "0",
-        "rolling2_fpoints": "0",
-        "score_floor_big_rise": "0",
-        "score_floor_small_rise": "0",
-        "score_floor_avoid_big_fall": "0",
-        "is_active": "1",
-        "fetched_at": "2026-07-05T18:00:00Z",
-        "live_score": live_score,
-    }
+    row = base_metric_row(
+        asset_id,
+        asset_type,
+        name,
+        "99",
+        "10",
+        "-999",
+        target_round_id="9",
+        last1_round_id="8",
+        last2_round_id="7",
+        last2_price="9",
+        fetched_at="2026-07-05T18:00:00Z",
+    )
+    row["rolling2_fpoints"] = "0"
+    row["live_score"] = live_score
+    return row
 
 
 class BestLiveLineupTests(unittest.TestCase):
