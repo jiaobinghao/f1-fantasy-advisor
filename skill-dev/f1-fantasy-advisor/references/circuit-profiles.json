@@ -1,0 +1,670 @@
+{
+  "schema_version": 1,
+  "version": "2026-11-01.v2",
+  "assessed_on": "2026-11-01",
+  "calibration_status": "uncalibrated",
+  "unknown_difficulty": 0.5,
+  "method": {
+    "formula": "grid_weight=0.2+0.6*difficulty; pace_weight=1-grid_weight",
+    "basis": "Fixed editorial assessments of passing difficulty using the linked circuit guides and historical examples; no pooled overtaking dataset was fitted. Madring and Monza difficulty levels follow user-requested model assumptions.",
+    "scale": "0: easiest; 0.1-0.3: several practical passing opportunities; 0.4-0.6: mixed/restricted; 0.7-0.9: difficult; 1: extreme difficulty (Monaco/Madring tier).",
+    "resolution": 0.1,
+    "sessions": "Race and Sprint share the same difficulty in v1.",
+    "maintenance": "Manually revise for substantial layout/rule changes or validated historical evidence; bump version. Do not re-estimate during weekly forecasts.",
+    "limitations": "Not a probability or a fitted optimum. No weather, tyre, distance or era adjustment. Confidence describes qualitative evidence only.",
+    "coverage_source": "https://www.formula1.com/en/racing/2026",
+    "coverage_note": "23 circuits on the calendar accessed 2026-11-01, plus Sakhir, Jeddah and Imola. Resolve by physical circuit, not race title; Bahrain GP in Malaysia uses Sepang."
+  },
+  "circuits": [
+    {
+      "circuit_id": "albert-park",
+      "name_en": "Australia - Albert Park",
+      "name_zh": "\u6fb3\u5927\u5229\u4e9a\u00b7\u963f\u5c14\u4f2f\u7279\u516c\u56ed",
+      "aliases": [
+        "Albert Park Grand Prix Circuit",
+        "Albert Park Circuit",
+        "australia"
+      ],
+      "difficulty": 0.3,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Fast revised layout, but limited heavy-braking opportunities between flowing corners.",
+      "rationale_zh": "\u6539\u7ebf\u540e\u901f\u5ea6\u5feb\uff0c\u4f46\u8fde\u7eed\u5f2f\u4e4b\u95f4\u53ef\u7528\u7684\u91cd\u5239\u8d85\u8f66\u70b9\u4ecd\u6709\u9650\u3002",
+      "source_refs": [
+        "australia"
+      ]
+    },
+    {
+      "circuit_id": "shanghai",
+      "name_en": "China - Shanghai",
+      "name_zh": "\u4e2d\u56fd\u00b7\u4e0a\u6d77",
+      "aliases": [
+        "Shanghai International Circuit",
+        "china"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "The 1.2 km back straight and hairpin give a strong passing opportunity.",
+      "rationale_zh": "1.2 \u516c\u91cc\u540e\u76f4\u9053\u63a5\u53d1\u5361\u5f2f\uff0c\u4e3a\u8ffd\u8f66\u63d0\u4f9b\u4e3b\u8981\u673a\u4f1a\u3002",
+      "source_refs": [
+        "china"
+      ]
+    },
+    {
+      "circuit_id": "suzuka",
+      "name_en": "Japan - Suzuka",
+      "name_zh": "\u65e5\u672c\u00b7\u94c3\u9e7f",
+      "aliases": [
+        "Suzuka Circuit",
+        "Suzuka International Racing Course",
+        "japan"
+      ],
+      "difficulty": 0.5,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Fast linked corners make following demanding; passing is concentrated at a few braking zones.",
+      "rationale_zh": "\u8fde\u7eed\u9ad8\u901f\u5f2f\u589e\u52a0\u8ddf\u8f66\u96be\u5ea6\uff0c\u8d85\u8f66\u96c6\u4e2d\u5728\u5c11\u6570\u5236\u52a8\u533a\u3002",
+      "source_refs": [
+        "japan"
+      ]
+    },
+    {
+      "circuit_id": "miami",
+      "name_en": "Miami",
+      "name_zh": "\u8fc8\u963f\u5bc6",
+      "aliases": [
+        "Miami International Autodrome"
+      ],
+      "difficulty": 0.2,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Three straights offer recovery opportunities despite the tight low-speed section.",
+      "rationale_zh": "\u4e09\u6bb5\u76f4\u9053\u6709\u5229\u8ffd\u8d76\uff0c\u4f4e\u901f\u72ed\u7a84\u6bb5\u4ecd\u9650\u5236\u8ddf\u8f66\u3002",
+      "source_refs": [
+        "miami"
+      ]
+    },
+    {
+      "circuit_id": "gilles-villeneuve",
+      "name_en": "Canada - Gilles-Villeneuve",
+      "name_zh": "\u52a0\u62ff\u5927\u00b7\u7ef4\u4f26\u7ebd\u592b",
+      "aliases": [
+        "Circuit Gilles-Villeneuve",
+        "Circuit Gilles Villeneuve",
+        "canada",
+        "montreal"
+      ],
+      "difficulty": 0.2,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Stop-start layout, hairpin and heavy braking provide several passing chances.",
+      "rationale_zh": "\u542f\u505c\u5e03\u5c40\u3001\u53d1\u5361\u5f2f\u4e0e\u91cd\u5239\u533a\u63d0\u4f9b\u8d85\u8f66\u673a\u4f1a\u3002",
+      "source_refs": [
+        "canada"
+      ]
+    },
+    {
+      "circuit_id": "monaco",
+      "name_en": "Monaco",
+      "name_zh": "\u6469\u7eb3\u54e5",
+      "aliases": [
+        "Circuit de Monaco",
+        "Monte Carlo"
+      ],
+      "difficulty": 1.0,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Very narrow streets; F1 cites zero passing moves in the 2003 race. Extreme grid dependence.",
+      "rationale_zh": "\u6781\u7a84\u8857\u9053\uff1b\u5b98\u65b9\u4ecb\u7ecd\u5f15\u7528 2003 \u5e74\u96f6\u6b21\u8d85\u8f66\uff0c\u53d1\u8f66\u4f4d\u7f6e\u5f71\u54cd\u6781\u5927\u3002",
+      "source_refs": [
+        "monaco"
+      ]
+    },
+    {
+      "circuit_id": "barcelona",
+      "name_en": "Barcelona-Catalunya",
+      "name_zh": "\u5df4\u585e\u7f57\u90a3\u00b7\u52a0\u6cf0\u7f57\u5c3c\u4e9a",
+      "aliases": [
+        "Circuit de Barcelona-Catalunya",
+        "Circuit de Catalunya",
+        "barcelona-catalunya"
+      ],
+      "difficulty": 0.4,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Mixed-speed aero-sensitive corners; main-straight braking remains the key opportunity.",
+      "rationale_zh": "\u6df7\u5408\u9ad8\u901f\u4f4e\u901f\u5f2f\u5bf9\u8ddf\u8f66\u6709\u8981\u6c42\uff0c\u4e3b\u8981\u673a\u4f1a\u5728\u4e3b\u76f4\u9053\u672b\u7aef\u3002",
+      "source_refs": [
+        "barcelona"
+      ]
+    },
+    {
+      "circuit_id": "red-bull-ring",
+      "name_en": "Austria - Red Bull Ring",
+      "name_zh": "\u5965\u5730\u5229\u00b7\u7ea2\u725b\u73af",
+      "aliases": [
+        "Red Bull Ring",
+        "austria",
+        "spielberg"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Three straights and uphill braking zones allow repeated attacks.",
+      "rationale_zh": "\u4e09\u6bb5\u76f4\u9053\u4e0e\u4e0a\u5761\u91cd\u5239\u533a\u652f\u6301\u8fde\u7eed\u8fdb\u653b\u3002",
+      "source_refs": [
+        "austria"
+      ]
+    },
+    {
+      "circuit_id": "silverstone",
+      "name_en": "Great Britain - Silverstone",
+      "name_zh": "\u82f1\u56fd\u00b7\u94f6\u77f3",
+      "aliases": [
+        "Silverstone Circuit",
+        "great-britain",
+        "britain"
+      ],
+      "difficulty": 0.2,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Several fast approaches and wide corners allow racing, with some following loss in fast sequences.",
+      "rationale_zh": "\u9ad8\u901f\u63a5\u8fd1\u533a\u4e0e\u8f83\u5bbd\u5f2f\u9053\u6709\u5229\u4e89\u593a\uff0c\u8fde\u7eed\u9ad8\u901f\u5f2f\u4ecd\u6709\u8ddf\u8f66\u635f\u5931\u3002",
+      "source_refs": [
+        "great-britain"
+      ]
+    },
+    {
+      "circuit_id": "spa",
+      "name_en": "Belgium - Spa-Francorchamps",
+      "name_zh": "\u6bd4\u5229\u65f6\u00b7\u65af\u5e15",
+      "aliases": [
+        "Circuit de Spa-Francorchamps",
+        "Spa Francorchamps",
+        "belgium"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Long straights support slipstreaming; the fast middle sector still rewards pace.",
+      "rationale_zh": "\u957f\u76f4\u9053\u5229\u4e8e\u5c3e\u6d41\u8fdb\u653b\uff0c\u9ad8\u901f\u4e2d\u6bb5\u4e5f\u80fd\u4f53\u73b0\u901f\u5ea6\u5dee\u3002",
+      "source_refs": [
+        "belgium"
+      ]
+    },
+    {
+      "circuit_id": "hungaroring",
+      "name_en": "Hungary - Hungaroring",
+      "name_zh": "\u5308\u7259\u5229\u00b7\u4ea8\u683c\u7f57\u5b81",
+      "aliases": [
+        "Hungaroring",
+        "hungary"
+      ],
+      "difficulty": 0.7,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Short straights and linked corners; F1 compares its downforce demand with Monaco.",
+      "rationale_zh": "\u77ed\u76f4\u9053\u4e0e\u8fde\u7eed\u5f2f\u9650\u5236\u8fdb\u653b\uff0c\u5b98\u65b9\u4ee5\u6469\u7eb3\u54e5\u7ea7\u4e0b\u538b\u529b\u9700\u6c42\u4f5c\u6bd4\u8f83\u3002",
+      "source_refs": [
+        "hungary"
+      ]
+    },
+    {
+      "circuit_id": "zandvoort",
+      "name_en": "Netherlands - Zandvoort",
+      "name_zh": "\u8377\u5170\u00b7\u8d5e\u5fb7\u6c83\u7279",
+      "aliases": [
+        "Circuit Zandvoort",
+        "netherlands"
+      ],
+      "difficulty": 0.6,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Flowing, undulating layout limits easy attacks despite the banked final approach.",
+      "rationale_zh": "\u8d77\u4f0f\u8fde\u7eed\u5f2f\u9650\u5236\u8d85\u8f66\uff0c\u503e\u659c\u5f2f\u548c\u4e3b\u76f4\u9053\u63d0\u4f9b\u90e8\u5206\u673a\u4f1a\u3002",
+      "source_refs": [
+        "netherlands"
+      ]
+    },
+    {
+      "circuit_id": "monza",
+      "name_en": "Italy - Monza",
+      "name_zh": "\u610f\u5927\u5229\u00b7\u8499\u624e",
+      "aliases": [
+        "Autodromo Nazionale Monza",
+        "Autodromo Nazionale di Monza",
+        "italy"
+      ],
+      "difficulty": 0.0,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "User-requested easiest passing tier; long straights and chicane braking support this model assumption.",
+      "rationale_zh": "\u6309\u7528\u6237\u8bbe\u5b9a\u5f52\u5165\u6700\u4f4e\u8d85\u8f66\u96be\u5ea6\u6863\uff1b\u957f\u76f4\u9053\u4e0e\u51cf\u901f\u5f2f\u91cd\u5239\u652f\u6301\u8fd9\u4e00\u6a21\u578b\u5224\u65ad\u3002",
+      "source_refs": [
+        "italy"
+      ],
+      "assessment_basis": "user_requested_model_assumption"
+    },
+    {
+      "circuit_id": "madring",
+      "name_en": "Spain - Madring",
+      "name_zh": "\u897f\u73ed\u7259\u00b7\u9a6c\u5fb7\u91cc",
+      "aliases": [
+        "Madring",
+        "Madrid",
+        "Madring Circuit"
+      ],
+      "difficulty": 1.0,
+      "coverage": "2026_calendar",
+      "confidence": "low",
+      "rationale_en": "User-requested Monaco-level passing difficulty; limited comparable F1 history, so this remains an uncalibrated model assumption.",
+      "rationale_zh": "\u6309\u7528\u6237\u8bbe\u5b9a\u5f52\u5165\u4e0e\u6469\u7eb3\u54e5\u76f8\u540c\u7684\u6700\u9ad8\u8d85\u8f66\u96be\u5ea6\u6863\uff1b\u53ef\u6bd4\u8f83\u7684 F1 \u5386\u53f2\u6709\u9650\uff0c\u4ecd\u5c5e\u672a\u6821\u51c6\u5047\u8bbe\u3002",
+      "source_refs": [
+        "madrid"
+      ],
+      "assessment_basis": "user_requested_model_assumption"
+    },
+    {
+      "circuit_id": "baku",
+      "name_en": "Azerbaijan - Baku",
+      "name_zh": "\u963f\u585e\u62dc\u7586\u00b7\u5df4\u5e93",
+      "aliases": [
+        "Baku City Circuit",
+        "azerbaijan"
+      ],
+      "difficulty": 0.3,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Very long slipstreaming straight offsets a narrow old-town section; not uniformly easy.",
+      "rationale_zh": "\u8d85\u957f\u76f4\u9053\u62b5\u6d88\u90e8\u5206\u65e7\u57ce\u533a\u72ed\u7a84\u6bb5\u9650\u5236\uff0c\u4e0d\u80fd\u53ea\u6309\u76f4\u9053\u957f\u5ea6\u5224\u65ad\u3002",
+      "source_refs": [
+        "azerbaijan"
+      ]
+    },
+    {
+      "circuit_id": "sepang",
+      "name_en": "Malaysia - Sepang",
+      "name_zh": "\u9a6c\u6765\u897f\u4e9a\u00b7\u96ea\u90a6",
+      "aliases": [
+        "Sepang International Circuit",
+        "malaysia"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "low",
+      "rationale_en": "Wide track, two long straights and heavy braking favour passing; limited recent comparable F1 editions.",
+      "rationale_zh": "\u5bbd\u8d5b\u9053\u3001\u4e24\u6761\u957f\u76f4\u9053\u53ca\u91cd\u5239\u533a\u5229\u4e8e\u8fdb\u653b\uff1b\u8fd1\u671f\u53ef\u6bd4\u8f83\u7684 F1 \u573a\u6b21\u6709\u9650\u3002",
+      "source_refs": [
+        "sepang"
+      ]
+    },
+    {
+      "circuit_id": "marina-bay",
+      "name_en": "Singapore - Marina Bay",
+      "name_zh": "\u65b0\u52a0\u5761\u00b7\u6ee8\u6d77\u6e7e",
+      "aliases": [
+        "Marina Bay Street Circuit",
+        "Marina Bay Circuit",
+        "singapore"
+      ],
+      "difficulty": 0.8,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Corner-heavy street layout retains strong track-position dependence after the 2023 changes.",
+      "rationale_zh": "2023 \u5e74\u6539\u7ebf\u540e\u4ecd\u662f\u591a\u5f2f\u8857\u9053\uff0c\u8d5b\u9053\u4f4d\u7f6e\u4f9d\u7136\u91cd\u8981\u3002",
+      "source_refs": [
+        "singapore"
+      ]
+    },
+    {
+      "circuit_id": "cota",
+      "name_en": "United States - COTA",
+      "name_zh": "\u7f8e\u56fd\u00b7\u5965\u65af\u6c40",
+      "aliases": [
+        "Circuit of The Americas",
+        "Circuit of the Americas",
+        "united-states",
+        "austin"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Very wide Turn 1 and long-straight braking provide multiple attacking lines.",
+      "rationale_zh": "\u5bbd\u9614\u4e00\u53f7\u5f2f\u4e0e\u957f\u76f4\u9053\u91cd\u5239\u533a\u63d0\u4f9b\u591a\u79cd\u8fdb\u653b\u8def\u7ebf\u3002",
+      "source_refs": [
+        "united-states"
+      ]
+    },
+    {
+      "circuit_id": "hermanos-rodriguez",
+      "name_en": "Mexico City - Hermanos Rodriguez",
+      "name_zh": "\u58a8\u897f\u54e5\u57ce\u00b7\u7f57\u5fb7\u91cc\u683c\u65af",
+      "aliases": [
+        "Aut\u00f3dromo Hermanos Rodr\u00edguez",
+        "Autodromo Hermanos Rodriguez",
+        "mexico",
+        "mexico-city"
+      ],
+      "difficulty": 0.4,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Long main straight helps, but altitude and the twisty middle/stadium sections constrain sustained recovery.",
+      "rationale_zh": "\u957f\u4e3b\u76f4\u9053\u5229\u4e8e\u8fdb\u653b\uff0c\u4f46\u9ad8\u6d77\u62d4\u4e0e\u8fde\u7eed\u5f2f\u3001\u4f53\u80b2\u573a\u6bb5\u9650\u5236\u6301\u7eed\u8ffd\u8d76\u3002",
+      "source_refs": [
+        "mexico"
+      ]
+    },
+    {
+      "circuit_id": "interlagos",
+      "name_en": "Sao Paulo - Interlagos",
+      "name_zh": "\u5df4\u897f\u00b7\u82f1\u7279\u62c9\u683c\u65af",
+      "aliases": [
+        "Aut\u00f3dromo Jos\u00e9 Carlos Pace",
+        "Autodromo Jose Carlos Pace",
+        "Autodromo de Interlagos",
+        "brazil",
+        "sao-paulo"
+      ],
+      "difficulty": 0.1,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Runs into the Senna S and Turn 4 support recovery despite the twisty infield.",
+      "rationale_zh": "\u585e\u7eb3 S \u4e0e\u56db\u53f7\u5f2f\u524d\u7684\u52a0\u901f\u533a\u5229\u4e8e\u8ffd\u8d76\uff0c\u5185\u573a\u8fde\u7eed\u5f2f\u4ecd\u6709\u7ea6\u675f\u3002",
+      "source_refs": [
+        "brazil"
+      ]
+    },
+    {
+      "circuit_id": "las-vegas",
+      "name_en": "Las Vegas",
+      "name_zh": "\u62c9\u65af\u7ef4\u52a0\u65af",
+      "aliases": [
+        "Las Vegas Strip Circuit",
+        "Las Vegas Street Circuit",
+        "Las Vegas"
+      ],
+      "difficulty": 0.0,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Long straights and heavy braking; F1 explicitly highlights overtaking opportunities.",
+      "rationale_zh": "\u957f\u76f4\u9053\u4e0e\u91cd\u5239\u533a\u4e30\u5bcc\uff0c\u5b98\u65b9\u8d5b\u9053\u4ecb\u7ecd\u660e\u786e\u5f3a\u8c03\u8d85\u8f66\u673a\u4f1a\u3002",
+      "source_refs": [
+        "las-vegas"
+      ]
+    },
+    {
+      "circuit_id": "lusail",
+      "name_en": "Qatar - Lusail",
+      "name_zh": "\u5361\u5854\u5c14\u00b7\u5362\u8d5b\u5c14",
+      "aliases": [
+        "Lusail International Circuit",
+        "Losail International Circuit",
+        "qatar"
+      ],
+      "difficulty": 0.5,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Medium/high-speed corners dominate; the main straight into Turn 1 is the primary passing opportunity.",
+      "rationale_zh": "\u4e2d\u9ad8\u901f\u5f2f\u5360\u591a\u6570\uff0c\u4e3b\u8981\u8d85\u8f66\u673a\u4f1a\u96c6\u4e2d\u5728\u4e3b\u76f4\u9053\u63a5\u4e00\u53f7\u5f2f\u3002",
+      "source_refs": [
+        "qatar"
+      ]
+    },
+    {
+      "circuit_id": "yas-marina",
+      "name_en": "Abu Dhabi - Yas Marina",
+      "name_zh": "\u963f\u5e03\u624e\u6bd4\u00b7\u4e9a\u65af\u7801\u5934",
+      "aliases": [
+        "Yas Marina Circuit",
+        "Abu Dhabi",
+        "united-arab-emirates"
+      ],
+      "difficulty": 0.3,
+      "coverage": "2026_calendar",
+      "confidence": "medium",
+      "rationale_en": "Long straight and the 2021 changes help passing; the later corner sequence still matters.",
+      "rationale_zh": "\u957f\u76f4\u9053\u4e0e 2021 \u5e74\u6539\u7ebf\u6539\u5584\u8d85\u8f66\uff0c\u540e\u6bb5\u5f2f\u9053\u4ecd\u9650\u5236\u8ddf\u8f66\u3002",
+      "source_refs": [
+        "united-arab-emirates"
+      ]
+    },
+    {
+      "circuit_id": "sakhir",
+      "name_en": "Bahrain - Sakhir GP layout",
+      "name_zh": "\u5df4\u6797\u00b7\u8428\u57fa\u5c14 GP \u5e03\u5c40",
+      "aliases": [
+        "Bahrain International Circuit",
+        "Bahrain"
+      ],
+      "difficulty": 0.0,
+      "coverage": "additional_recent_circuit",
+      "confidence": "medium",
+      "rationale_en": "Several heavy-braking opportunities; F1 describes decent amounts of overtaking.",
+      "rationale_zh": "\u591a\u5904\u91cd\u5239\u8fdb\u653b\u70b9\uff0c\u5b98\u65b9\u8bc4\u4ef7\u4e3a\u901a\u5e38\u6709\u8f83\u591a\u8d85\u8f66\u3002",
+      "source_refs": [
+        "bahrain"
+      ]
+    },
+    {
+      "circuit_id": "jeddah",
+      "name_en": "Saudi Arabia - Jeddah",
+      "name_zh": "\u6c99\u7279\u00b7\u5409\u8fbe",
+      "aliases": [
+        "Jeddah Corniche Circuit",
+        "saudi-arabia"
+      ],
+      "difficulty": 0.2,
+      "coverage": "additional_recent_circuit",
+      "confidence": "medium",
+      "rationale_en": "Fast street layout with long flat-out sections, tempered by narrow high-speed sequences.",
+      "rationale_zh": "\u9ad8\u901f\u8857\u9053\u7684\u957f\u52a0\u901f\u533a\u6709\u5229\u8fdb\u653b\uff0c\u72ed\u7a84\u9ad8\u901f\u8fde\u7eed\u5f2f\u4ecd\u6709\u9650\u5236\u3002",
+      "source_refs": [
+        "saudi-arabia"
+      ]
+    },
+    {
+      "circuit_id": "imola",
+      "name_en": "Emilia-Romagna - Imola",
+      "name_zh": "\u827e\u7c73\u5229\u4e9a-\u7f57\u9a6c\u6d85\u00b7\u4f0a\u83ab\u62c9",
+      "aliases": [
+        "Autodromo Enzo e Dino Ferrari",
+        "Autodromo Internazionale Enzo e Dino Ferrari",
+        "emiliaromagna",
+        "emilia-romagna"
+      ],
+      "difficulty": 0.7,
+      "coverage": "additional_recent_circuit",
+      "confidence": "medium",
+      "rationale_en": "Old-school linked corners; most realistic passing concentrates on the main-straight approach.",
+      "rationale_zh": "\u4f20\u7edf\u8fde\u7eed\u5f2f\u5e03\u5c40\uff0c\u4e3b\u8981\u8d85\u8f66\u673a\u4f1a\u96c6\u4e2d\u5728\u4e3b\u76f4\u9053\u672b\u7aef\u3002",
+      "source_refs": [
+        "emilia-romagna"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "australia",
+      "url": "https://www.formula1.com/en/racing/2025/australia/circuit",
+      "title": "Australia - Albert Park circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "china",
+      "url": "https://www.formula1.com/en/racing/2025/china/circuit",
+      "title": "China - Shanghai circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "japan",
+      "url": "https://www.formula1.com/en/racing/2025/japan/circuit",
+      "title": "Japan - Suzuka circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "miami",
+      "url": "https://www.formula1.com/en/racing/2025/miami/circuit",
+      "title": "Miami circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "canada",
+      "url": "https://www.formula1.com/en/racing/2025/canada/circuit",
+      "title": "Canada - Gilles-Villeneuve circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "monaco",
+      "url": "https://www.formula1.com/en/racing/2025/monaco/circuit",
+      "title": "Monaco circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "barcelona",
+      "url": "https://www.formula1.com/en/racing/2025/spain/circuit",
+      "title": "Barcelona-Catalunya circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "austria",
+      "url": "https://www.formula1.com/en/racing/2025/austria/circuit",
+      "title": "Austria - Red Bull Ring circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "great-britain",
+      "url": "https://www.formula1.com/en/racing/2025/great-britain/circuit",
+      "title": "Great Britain - Silverstone circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "belgium",
+      "url": "https://www.formula1.com/en/racing/2025/belgium/circuit",
+      "title": "Belgium - Spa-Francorchamps circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "hungary",
+      "url": "https://www.formula1.com/en/racing/2025/hungary/circuit",
+      "title": "Hungary - Hungaroring circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "netherlands",
+      "url": "https://www.formula1.com/en/racing/2025/netherlands/circuit",
+      "title": "Netherlands - Zandvoort circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "italy",
+      "url": "https://www.formula1.com/en/racing/2025/italy/circuit",
+      "title": "Italy - Monza circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "madrid",
+      "url": "https://www.formula1.com/en/racing/2026/spain/circuit",
+      "title": "Spain - Madring circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "azerbaijan",
+      "url": "https://www.formula1.com/en/racing/2025/azerbaijan/circuit",
+      "title": "Azerbaijan - Baku circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "sepang",
+      "url": "https://www.racingcircuits.info/asia/malaysia/sepang.html",
+      "title": "Malaysia - Sepang circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "singapore",
+      "url": "https://www.formula1.com/en/racing/2025/singapore/circuit",
+      "title": "Singapore - Marina Bay circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "united-states",
+      "url": "https://www.formula1.com/en/racing/2025/united-states/circuit",
+      "title": "United States - COTA circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "mexico",
+      "url": "https://www.formula1.com/en/racing/2025/mexico/circuit",
+      "title": "Mexico City - Hermanos Rodriguez circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "brazil",
+      "url": "https://www.formula1.com/en/racing/2025/brazil/circuit",
+      "title": "Sao Paulo - Interlagos circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "las-vegas",
+      "url": "https://www.formula1.com/en/racing/2025/las-vegas/circuit",
+      "title": "Las Vegas circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "qatar",
+      "url": "https://www.formula1.com/en/racing/2025/qatar/circuit",
+      "title": "Qatar - Lusail circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "united-arab-emirates",
+      "url": "https://www.formula1.com/en/racing/2025/united-arab-emirates/circuit",
+      "title": "Abu Dhabi - Yas Marina circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "bahrain",
+      "url": "https://www.formula1.com/en/racing/2025/bahrain/circuit",
+      "title": "Bahrain - Sakhir GP layout circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "saudi-arabia",
+      "url": "https://www.formula1.com/en/racing/2025/saudi-arabia/circuit",
+      "title": "Saudi Arabia - Jeddah circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    },
+    {
+      "id": "emilia-romagna",
+      "url": "https://www.formula1.com/en/racing/2025/emiliaromagna/circuit",
+      "title": "Emilia-Romagna - Imola circuit guide",
+      "accessed_on": "2026-11-01",
+      "evidence_type": "circuit_description_and_editorial_assessment"
+    }
+  ]
+}

@@ -1,5 +1,20 @@
 # F1 Fantasy Strategy Workflow
 
+## Implemented V1 Workflow
+
+For the v1 probability/budget model, follow `forecast-inputs.md` and run
+`fantasy_forecast.py run`. First maximize net expected points, then maximize
+expected budget growth across all legal lineups within `--allow` points of that
+optimum (default 10). Report both choices and the points sacrificed. Evaluate
+the three teams independently with normal fixed 2x; portfolio roles and chip
+allocation below are separate strategic extensions, not requirements for v1.
+
+V1 uses historical frequencies, practice rankings and only incident compensation,
+handling instability and grid-penalty news. News does not change NC/DSQ risk.
+Weather, long runs and broader reliability reasoning below must not silently
+alter the program's probabilities. Defaults are uncalibrated; the program
+exports evidence, samples, fallback flags and limitations for explanation.
+
 ## Race-Week Inputs
 
 Before recommending transfers or chips, refresh:
@@ -30,13 +45,13 @@ give the best provisional analysis possible rather than silently omitting it.
 Do not assign any team a permanently conservative or aggressive role. Treat
 each race as a three-team portfolio decision:
 
-```text
-expected fantasy points
-+ price-change EV
-+ next-race budget flexibility
-- reliability / penalty / weather risk
-- chip opportunity cost
-```
+For quantitative forecasts follow `forecast-model.md`: maximize expected points
+after transfer fees under budget constraints, and report joint downside risk,
+price-change EV, next-race flexibility, and chip opportunity cost separately.
+Reliability and weather outcomes already belong in the score distribution;
+do not subtract their expected loss twice. Do not add millions of budget to
+fantasy points without an explicitly justified future-points conversion.
+Historical averages and live totals are not next-race predictions.
 
 Do not describe a price rise as locked solely because a `score_floor_*` is
 negative. A negative floor is only room for a negative race-week score; a DNF or

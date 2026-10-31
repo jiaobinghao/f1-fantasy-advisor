@@ -1,0 +1,9 @@
+{
+  "version": "fia-2026-section-b-issue06-grid",
+  "season": 2026,
+  "algorithm": "fia_temporary_positions",
+  "back_of_grid_above": 15,
+  "source": "https://www.fia.com/system/files/documents/fia_2026_f1_regulations_-_section_b_sporting_-_iss_06_-_2026-04-28.pdf",
+  "articles": ["B2.3.4", "B2.5.4"],
+  "note": "Pinned Issue 06 profile, not a claim that this is the latest issue. Review applicable rules before each season. Inputs contain only unserved penalties applicable to the named session; expiry is resolved from the decision before import. Pit-lane Fantasy scoring needs an explicit sourced convention."
+}

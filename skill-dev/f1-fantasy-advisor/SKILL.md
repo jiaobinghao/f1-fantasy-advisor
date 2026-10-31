@@ -1,6 +1,6 @@
 ---
 name: f1-fantasy-advisor
-description: Maintain and analyze F1 Fantasy data for race-week preparation. Use when Codex needs to fetch public F1 Fantasy driver/constructor feeds, ingest fallback screenshots or CSVs, compute race scores, rolling 3-race AvgPPM, price changes, current prices, budget-building paths, Limitless shadow-team effects, or recommend Team 1, Team 2, and Team 3 fantasy strategy without using private F1 Fantasy API credentials.
+description: Maintain and analyze F1 Fantasy data for race-week preparation. Use for public feeds, fallback screenshots/CSVs, scores and price changes, probability-based driver/constructor forecasts, budget-constrained lineup and chip evaluation, or Team 1/2/3 strategy without private F1 Fantasy API credentials.
 ---
 
 # F1 Fantasy Advisor
@@ -12,8 +12,14 @@ Use the user's fantasy workspace as the source of truth. Read `README.md`,
 before giving lineup or chip advice. If `now.md` exists, treat it as local
 private scratch only, not authoritative memory. Any user-specific team state
 learned during a conversation must be recorded in `data/team_state.csv` with
-`scripts/fantasy_state.py record-team`. `data/` is local private state and
+`scripts/fantasy_state.py record-team`. Remaining free transfers have no CSV
+column: preserve that fact and its timestamp in `--notes` and the forecast's
+`teams.json`. `data/` is local private state and
 should stay ignored by Git; committed CSV templates live in `data-templates/`.
+
+Resolve `scripts/` and `references/` relative to this skill directory. Repository
+examples use `skill-dev/f1-fantasy-advisor/`; when the skill is installed elsewhere,
+use its actual path while keeping the user's `data/` in their workspace.
 
 Treat Team 1, Team 2, and Team 3 as managed teams. Whenever giving race-week
 lineup, transfer, boost, chip, budget, or portfolio advice, analyze all three
@@ -35,7 +41,8 @@ When the user says `帮我开始fantasy指导` or `Help me start F1 Fantasy guid
    previous two race scores; they are available from public per-asset history.
 5. Ask only for private account state that public feeds cannot provide:
    current team lineup, remaining budget/cost cap, used chips, active chip,
-   boosted driver, transfer penalties, and league/risk objective.
+   boosted driver, remaining free transfers, transfer penalties, and league/risk
+   objective. Reuse confirmed saved facts; ask only for missing or stale fields.
 6. After the user provides private team state, record each team with
    `scripts/fantasy_state.py record-team` so future guidance reads CSV state
    instead of conversation history or `now.md`.
@@ -99,8 +106,100 @@ or transfer penalties.
 
 ## Lineup Tools
 
-Lineup optimizers under `scripts/`, all run from the fantasy workspace after a
-public data fetch:
+### Forward Predictions
+
+For "calculate this week's lineup", start with
+`references/race-week-runbook.md`. It connects race/deadline discovery, evidence
+acquisition, current account conversion, execution and output interpretation.
+Prepare the input files for the user; do not make them author JSON. `run` does
+not read `team_state.csv` automatically or discover news from free text.
+
+Read `references/forecast-model.md` before forecasting points or calling a
+future lineup optimal. It defines scoring formulas, the probability standard,
+source/sample requirements, coherent scenarios, calibration labels, and input
+contracts. For the implemented v1 pipeline, also read
+`references/forecast-inputs.md`: it defines acquisition, input schemas, news
+extraction, grid penalties, defaults and budget selection. Use this workflow
+for both standard and Sprint rounds:
+
+```bash
+python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_forecast.py example-run --out-dir data/forecast-demo
+python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_forecast.py run --config data/forecast-demo/run_config.json --offline --out-dir data/forecast-demo/result
+python3 skill-dev/f1-fantasy-advisor/scripts/fantasy_forecast.py optimize data/forecast-demo/result/forecast.json --teams data/forecast-demo/teams.json --allow 0
+```
+
+These commands use fictional examples, not race recommendations. For a real
+forecast, configure public feeds or normalized cached evidence, refresh
+prices/entrants before lock, and extract cited news into the documented inputs.
+The program estimates history/practice probabilities and generates full-field
+scenarios. News may only compensate practice incidents, penalize explicit
+handling instability, or describe grid penalties; do not change reliability
+probabilities from news in v1. Require publication times and exact quotes.
+Uncertain penalties need justified probabilities or separate conditional
+branches. Never invent equal odds or apply a penalty twice to an official grid.
+
+Evaluate all managed teams with actual saved holdings, bank and remaining free
+transfers, or an explicitly confirmed official transfer-accounting baseline
+with its matching allowance and bank. If the user has submitted changes since
+the saved snapshot and has not confirmed that baseline, label a
+replay as simulation-only rather than inferring current accounts. The new `run`
+supports normal fixed 2x; active chips use the separate manual-scenario tools.
+Defaults are uncalibrated and exported. Report `scenario`, `baseline`, or
+`calibrated` honestly;
+metadata validation alone does not verify predictive quality. Use `calibrate`
+on frozen pre-lock predictions and later outcomes to assess probability errors.
+
+The default history uses four valid rounds per estimation pool, with linear
+weights `1, 0.75, 0.5, 0.25` from newest to oldest. Explicit configs use
+`window: 4, decay_mode: linear, half_life: 2`. This follows the user's specified
+weights, not standard exponential halving; older reports describe their saved
+settings. Read `forecast-inputs.md` for gaps, pooled observations and priors.
+Qualifying, race and Sprint pace use their own historical results, each mixed
+with available practice; missing-rank incident fallbacks stay in that session.
+Inspect each model's `pace_history` audit rather than confusing it with status
+samples. Look up fixed difficulty `d` in `references/circuit-profiles.json`;
+`g=0.2+0.6*d` gives the 20%-80% grid weight for both Race and Sprint. Do not
+re-estimate circuits or fetch circuit news during each forecast. Unknown tracks
+use a flagged neutral 50% weight. These are uncalibrated editorial assessments;
+low-confidence entries and overrides must be disclosed. Match physical circuit
+names/aliases, not Grand Prix titles. Positive position gains use
+`q=sum(w*gain)/sum(w*overtakes)` from positive-gain history, then `gain/q` with
+expectation-preserving integer rounding. Non-gaining finishers and started NC
+drivers use empirical fallbacks. Inspect `circuit_models` and `overtake_models`
+in `model_parameters.json`; `circuit_profiles.json` snapshots the fixed table
+with its version/content hash. A table assessed after the forecast cutoff is a
+retrospective model revision. Legacy density imports and thinning are removed.
+Historical finishing ranks are pace proxies, not lap-time estimates.
+
+Show category-level mean contributions, net expected lineup points, transfer
+fees, no-transfer/best-free comparisons, and joint uncertainty. Read
+`advisor_input.json`, `model_parameters.json` and `grid_penalty_impacts.json`
+before explaining results. By default `--allow 10` first finds the highest net
+expected score, then maximizes expected budget growth across all legal lineups
+within ten points of that score. Explain `score_best`, `budget_best`,
+`loss_vs_best`, and expected value growth separately. Compute prices from raw
+scenario scores, not mean scores or boosted points. Missing price history can
+make the budget optimum unavailable; disclose it and report the score result.
+For a keep/sell question, compare complete
+legal lineups using `required_assets` versus `excluded_assets`, not an isolated
+driver score. Review the versioned rules each season. Final Fix/post-lock and
+season-wide chip allocation are not implemented by this prediction engine.
+
+For a detailed forecast, follow the reporting format in
+`references/race-week-runbook.md` section 6: show every active driver's and
+constructor's current price, expected raw points, expected price change and
+price-fall probability, then both the score and budget options for each managed
+team. In Chinese, label `budget_best` as "保价/增值方案" and explain that it
+maximizes expected value growth within `--allow`, not guaranteed capital
+protection or minimum loss probability. Include complete rosters, 2x, transfers,
+fees, remaining cash, comparisons and evidence limitations. Explicitly identify
+withdrawals, replacements or unavailable estimates rather than silently omitting
+them or scoring a withdrawn driver as if still racing.
+
+### Historical And Live Tools
+
+These existing tools use completed or live scores, not forecast probabilities.
+Run from the fantasy workspace after a public data fetch:
 
 ```bash
 python3 skill-dev/f1-fantasy-advisor/scripts/auto_pilot_lineup.py 112 --top 10
@@ -112,7 +211,7 @@ python3 skill-dev/f1-fantasy-advisor/scripts/best_live_lineup.py transfers --int
 ```
 
 - `auto_pilot_lineup.py BUDGET` finds the theoretical best lineup for a cost
-  cap from `data/official` metrics.
+  cap from historical `data/official` metrics, not next-race expected scores.
 - `best_lineup_with_transfers.py` starts from last week's lineup and accounts
   for extra-transfer penalties; `--interactive` prompts for the previous
   lineup, remaining bank, and exclusions.
@@ -132,9 +231,19 @@ them into budget or rolling-score state.
 
 ## References
 
+- Read `references/race-week-runbook.md` to execute an actual race-week request
+  from saved state and public evidence through to the final recommendation.
 - Read `references/public-data-access.md` before asking for screenshots or
   changing public-feed data acquisition.
 - Read `references/price-model.md` before changing price-change calculations or
   onboarding a season at an arbitrary round.
 - Read `references/strategy-workflow.md` before giving race-week lineup, chip,
   budget-building, or three-team portfolio advice.
+- Read `references/forecast-model.md` for probability-based forecasts, scoring
+  expectations, uncertainty, and forward lineup optimization; its rules profile
+  is `references/scoring-2026.json`.
+- Read `references/circuit-profiles.json` for fixed circuit coefficients, aliases,
+  rationales and public sources. Revise/version this table only when maintaining
+  the model, not as a weekly acquisition step.
+- Read `references/forecast-inputs.md` for the v1 `run` workflow, reproducible
+  source snapshots, practice/news inputs, grid penalties and `--allow` selection.

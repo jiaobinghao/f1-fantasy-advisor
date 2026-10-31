@@ -1,0 +1,38 @@
+{
+  "version": "f1-fantasy-2026-v1",
+  "season": 2026,
+  "verified_on": "2026-10-31",
+  "field_size": 22,
+  "max_q2": 16,
+  "max_q3": 10,
+  "sources": [
+    "https://fantasy.formula1.com/en/game-rules",
+    "https://fantasy.formula1.com/feeds/translations/web/en.json"
+  ],
+  "qualifying_points": [10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+  "race_points": [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
+  "sprint_points": [8, 7, 6, 5, 4, 3, 2, 1],
+  "qualifying_nc": -5,
+  "race_nc": -20,
+  "sprint_nc": -10,
+  "qualifying_constructor_dsq_extra": -5,
+  "race_constructor_dsq_extra": -20,
+  "sprint_constructor_dsq_extra": -10,
+  "race_fastest_lap": 10,
+  "sprint_fastest_lap": 5,
+  "driver_of_day": 10,
+  "sprint_positions_lost_cap": 10,
+  "qualifying_progress": {"none_q2": -1, "one_q2": 1, "both_q2": 3, "one_q3": 5, "both_q3": 10},
+  "pit_bands": [{"below_seconds": 2.0, "points": 20}, {"below_seconds": 2.2, "points": 10}, {"below_seconds": 2.5, "points": 5}, {"below_seconds": 3.0, "points": 2}],
+  "fastest_pit_bonus": 5,
+  "pit_record_bonus": 15,
+  "extra_transfer_penalty": 10,
+  "notes": [
+    "Use current rendered translations, not stale JavaScript fallback text.",
+    "Race NC retains eligible prior overtakes; DSQ removes rewards from that session.",
+    "Constructor DSQ deductions are additional to the driver's session penalty; review the official table when changing season.",
+    "Pit input uses the official measured time; 3.00 seconds is in the zero-point band.",
+    "World-record setters are explicit because record-breaking depends on stop chronology.",
+    "No Negative clips each scoring category before totaling an asset."
+  ]
+}
