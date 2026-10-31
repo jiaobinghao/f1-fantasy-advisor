@@ -436,7 +436,7 @@ $8192=2^{13}$，但当前算法**不要求样本量是 2 的幂**；可以在运
 对单个分支的简单等权抽样，均值标准误差近似为：
 
 ```math
-\operatorname{SE}\!\left(\widehat{\mu}_i\right)
+\mathrm{SE}\!\left(\widehat{\mu}_i\right)
 \approx \frac{\sigma_{i,\mathrm{scenario}}}{\sqrt{N}}
 ```
 

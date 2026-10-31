@@ -547,7 +547,7 @@ $8192=2^{13}$, but the algorithm **does not require a power of two**. Set `sampl
 For simple equally weighted sampling within one branch, the approximate standard error of the mean is:
 
 ```math
-\operatorname{SE}\!\left(\widehat{\mu}_i\right)
+\mathrm{SE}\!\left(\widehat{\mu}_i\right)
 \approx \frac{\sigma_{i,\mathrm{scenario}}}{\sqrt{N}}
 ```
 
