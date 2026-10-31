@@ -258,8 +258,8 @@ Skill 的参考文档目录。Codex 在做不同类型任务前应读取对应�
 策略建议工作流。主要内容：
 
 - 给阵容/芯片建议前需要刷新官方 session 结果、车队评论、天气、安全车风险、fantasy 数据和本地 team 状态。
-- Team 1 和 Team 3 是 league-relevant teams；Team 2 默认忽略。
-- 不固定 Team 1 保守、Team 3 激进，而是按每站组合决策。
+- Team 1、Team 2 和 Team 3 都是需要每站分析的 league-relevant teams；只有用户明确缩小范围时才可省略某队。
+- 不固定任何队伍为保守或激进，而是按每站三队组合决策。
 - 策略价值公式：
 
 ```text

@@ -1,6 +1,6 @@
 ---
 name: f1-fantasy-advisor
-description: Maintain and analyze F1 Fantasy data for race-week preparation. Use when Codex needs to fetch public F1 Fantasy driver/constructor feeds, ingest fallback screenshots or CSVs, compute race scores, rolling 3-race AvgPPM, price changes, current prices, budget-building paths, Limitless shadow-team effects, or recommend Team 1 and Team 3 fantasy strategy without using private F1 Fantasy API credentials.
+description: Maintain and analyze F1 Fantasy data for race-week preparation. Use when Codex needs to fetch public F1 Fantasy driver/constructor feeds, ingest fallback screenshots or CSVs, compute race scores, rolling 3-race AvgPPM, price changes, current prices, budget-building paths, Limitless shadow-team effects, or recommend Team 1, Team 2, and Team 3 fantasy strategy without using private F1 Fantasy API credentials.
 ---
 
 # F1 Fantasy Advisor
@@ -14,6 +14,11 @@ private scratch only, not authoritative memory. Any user-specific team state
 learned during a conversation must be recorded in `data/team_state.csv` with
 `scripts/fantasy_state.py record-team`. `data/` is local private state and
 should stay ignored by Git; committed CSV templates live in `data-templates/`.
+
+Treat Team 1, Team 2, and Team 3 as managed teams. Whenever giving race-week
+lineup, transfer, boost, chip, budget, or portfolio advice, analyze all three
+unless the user explicitly narrows the scope. If one team's state is missing or
+stale, flag that limitation instead of silently omitting the team.
 
 ## Startup Prompt
 
@@ -132,4 +137,4 @@ them into budget or rolling-score state.
 - Read `references/price-model.md` before changing price-change calculations or
   onboarding a season at an arbitrary round.
 - Read `references/strategy-workflow.md` before giving race-week lineup, chip,
-  budget-building, or Team 1 / Team 3 split-strategy advice.
+  budget-building, or three-team portfolio advice.

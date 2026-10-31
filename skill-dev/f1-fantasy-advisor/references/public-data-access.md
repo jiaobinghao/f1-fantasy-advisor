@@ -190,7 +190,7 @@ Do not ask for routine screenshots for public fantasy data:
 
 Still ask the user for private account state:
 
-- Team 1 / Team 3 lineup
+- Team 1 / Team 2 / Team 3 lineup
 - budget after transfers
 - selected chips and boosts
 - transfer penalties

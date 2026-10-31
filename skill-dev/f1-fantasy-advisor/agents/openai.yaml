@@ -1,4 +1,4 @@
 interface:
   display_name: "F1 Fantasy Advisor"
   short_description: "Maintain F1 Fantasy data and strategy"
-  default_prompt: "帮我开始fantasy指导"
+  default_prompt: "使用 $f1-fantasy-advisor 分析 Team 1、Team 2 和 Team 3 的本站策略。"

@@ -22,11 +22,13 @@ transfer penalties.
 
 ## Team Strategy
 
-Team 1 and Team 3 are the league-relevant teams. Team 2 is ignored unless the
-user explicitly reactivates it.
+Team 1, Team 2, and Team 3 are all managed, league-relevant teams. Analyze all
+three in every race-week recommendation unless the user explicitly narrows the
+request. If a team's state is missing or stale, identify the missing input and
+give the best provisional analysis possible rather than silently omitting it.
 
-Do not assume Team 1 is permanently conservative or Team 3 is permanently
-aggressive. Treat each race as a portfolio decision:
+Do not assign any team a permanently conservative or aggressive role. Treat
+each race as a three-team portfolio decision:
 
 ```text
 expected fantasy points
@@ -45,9 +47,8 @@ risk as a sell argument. They can still be sell candidates for poor expected
 points, reliability risk, bad qualifying position, or because the transfer
 unlocks a materially stronger lineup.
 
-Use split strategies when one race-week thesis can be directly punished by a
-single failure mode. The Monaco example used Team 1 for budget preservation and
-Team 3 for Limitless points ceiling.
+Use split strategies across the three teams when one race-week thesis can be
+directly punished by a single failure mode.
 
 ## Limitless Checks
 
@@ -70,7 +71,7 @@ as normal budgets grow closer to unlimited-budget lineups.
 
 Give concrete recommendations:
 
-- Best lineup or transfer set for Team 1 and Team 3.
+- Best lineup or transfer set for Team 1, Team 2, and Team 3.
 - 2x / 3x / Autopilot / No Negative / Final Fix / Limitless call.
 - Budget impact from expected price changes.
 - Main risks that would flip the recommendation.
