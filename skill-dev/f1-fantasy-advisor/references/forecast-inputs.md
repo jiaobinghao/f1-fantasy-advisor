@@ -189,3 +189,29 @@ Start with `advisor_input.json`: asset means/price estimates, team recommendatio
 In `model_parameters.json`, `models["qualifying:<asset_id>"]`, `models["race:<asset_id>"]` and, when applicable, `models["sprint:<asset_id>"]` each export `history_score`, `practice_score`, effective `practice_weight`, `combined_score` and `strength`. Their `pace_history` objects identify the historical `session`, `score`, `fallback`, `rounds`, `sample_weights`, `sample_count`, `effective_sample_size` and `source_refs` actually used for pace. These can differ from the enclosing status sample audit, especially after constructor fallback. `practice_adjustments.csv` has one row per driver/FP/`forecast_session`; `session` still identifies the original FP. Select the forecast session when reading adjustments rather than counting those rows as additional practice observations.
 
 Other outputs include `component_probabilities.csv`, `asset_score_distributions.json`, `price_distributions.json`, `lineups.json`, normalized input tables, cached raw evidence, effective config, rules, teams and `run_manifest.json` with hashes. Failures preserve `data_quality.json` and a failed manifest. Report baseline/scenario labels honestly. Do not turn passing structural tests or thousands of Monte Carlo draws into a claim of calibrated predictive accuracy.
+
+`run` writes `expected_driver_positions.csv` and the same rows under
+`advisor_input.json`'s `driver_positions`. Each active sporting driver,
+including a non-selectable replacement, has `asset_id`, `name`, and fields:
+
+| Session | Conditional mean | Probability of an available position |
+| --- | --- | --- |
+| Qualifying | `mean_qualifying_position` | `p_qualifying_position_available` |
+| Race start | `mean_race_start_position` | `p_race_start_position_available` |
+| Race finish | `mean_race_finish_position` | `p_race_finish_position_available` |
+| Sprint start, when modeled | `mean_sprint_start_position` | `p_sprint_start_position_available` |
+| Sprint finish, when modeled | `mean_sprint_finish_position` | `p_sprint_finish_position_available` |
+
+For each field, sum scenario probability times position and divide by the
+probability of scenarios with an eligible position; report the denominator
+alongside limitations. Qualifying requires `status=classified` and a position.
+Start requires `status != dns` and a known start position; classified, NC and
+DSQ starters can contribute. Finish requires `status=classified` and a
+position. A zero denominator produces null, not zero or last place. The main
+forecast's actual scenario probabilities are used, including probability-
+weighted penalty mixtures; unweighted conditional branches are not silently
+averaged. The v1 Sprint generator has Sprint start and finish outcomes but no
+separate Sprint qualifying position. Older runs predate this export: derive
+the same weighted values from their saved `forecast.json` or rerun the saved
+inputs into a new output directory, without presenting a refreshed feed as an
+old frozen snapshot.

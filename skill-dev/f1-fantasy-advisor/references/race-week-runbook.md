@@ -195,7 +195,10 @@ a driver will race. State any unresolved treatment before the numerical tables.
 
 Show separate driver and constructor tables, sorted by expected raw points:
 
-| Driver / Constructor | Current price (M) | Expected points | Expected price change (M) | Price-fall probability |
+| Driver | Current price (M) | Expected points | Mean qualifying position | Mean race start | Mean classified race finish | Expected price change (M) | Price-fall probability |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+
+| Constructor | Current price (M) | Expected points | Expected price change (M) | Price-fall probability |
 | --- | ---: | ---: | ---: | ---: |
 
 Include every active asset, not only shortlisted picks. Explicitly list any
@@ -207,6 +210,21 @@ one decimal percent; use unrounded values in all comparisons. Show a sign on
 price changes. Unknown values are N/A, never zero. Driver/constructor points
 are raw: no 2x and no account transfer deductions. Expected price movement is
 a probability-weighted mean of discrete changes, not a guaranteed settlement.
+
+Join `expected_driver_positions.csv` or `advisor_input.json`'s
+`driver_positions` by `asset_id`, and show position means to two decimals.
+They are probability-weighted conditional means of the same final joint
+scenarios, including penalties and any weighted penalty branches. Qualifying
+means require a classified qualifying position; race start means include only
+non-DNS outcomes with a known starting position; race finish means require a
+classified race position. Explain these conditions and do not substitute last
+place for NC/DNS/DSQ. Report N/A for zero available probability, and disclose
+materially low position-availability probabilities. These means are not
+guaranteed finishing positions or substitutes for full outcome distributions.
+For Sprint weekends also show Sprint start and classified finish means as
+separate columns or a separate table; do not imply v1 separately models Sprint
+qualifying. See [forecast-inputs.md](forecast-inputs.md#read-the-results) for
+the output field names and exact denominators.
 
 ### Two options for each managed team
 

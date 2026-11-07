@@ -56,6 +56,36 @@ def optimize_teams(result, teams, rules, allow):
     return [optimize(result, team, rules, allow=allow) for team in teams]
 
 
+def driver_position_means(model):
+    """Calculate weighted conditional positions from the final joint scenarios."""
+    sessions = ["race"] + (["sprint"] if "sprint" in model["scenarios"][0] else [])
+    rows = []
+    for asset in model["assets"]:
+        if asset["type"] != "driver" or not asset.get("active", True):
+            continue
+        aid = asset["asset_id"]
+        fields = ["qualifying"] + [f"{session}_{kind}" for session in sessions for kind in ("start", "finish")]
+        weights = dict.fromkeys(fields, 0.0)
+        totals = dict.fromkeys(fields, 0.0)
+        for scenario in model["scenarios"]:
+            qualifying = scenario["qualifying"][aid]
+            positions = {"qualifying": qualifying["position"] if qualifying["status"] == "classified" else None}
+            for session in sessions:
+                outcome = scenario[session][aid]
+                positions[f"{session}_start"] = outcome["start_position"] if outcome["status"] != "dns" else None
+                positions[f"{session}_finish"] = outcome["position"] if outcome["status"] == "classified" else None
+            for field, position in positions.items():
+                if position is not None:
+                    weights[field] += scenario["probability"]
+                    totals[field] += scenario["probability"] * position
+        row = {"asset_id": aid, "name": asset["name"]}
+        for field in fields:
+            row[f"mean_{field}_position"] = totals[field] / weights[field] if weights[field] else None
+            row[f"p_{field}_position_available"] = weights[field]
+        rows.append(row)
+    return rows
+
+
 def outcome_summary(model, evaluation):
     result = {}
     for asset in model["assets"]:
@@ -206,6 +236,8 @@ def run(config_path, out_dir, teams_path=None, allow=None, offline=False):
                             "changes": impact_difference(summaries[yes], summaries[no])})
         save_json(output / "forecast.json", main_model)
         write_evaluation(output, main_result)
+        positions = driver_position_means(main_model)
+        save_csv(output / "expected_driver_positions.csv", positions)
         save_json(output / "lineups.json", {"metadata": main_model["metadata"], "teams": main_lineups})
         save_json(output / "grid_penalty_impacts.json", {"weighted_branches": weighted, "branches": branch_reports, "impacts": impacts})
         save_json(output / "model_parameters.json", {"parameters": generator.parameters, "models": generator.audit,
@@ -224,10 +256,11 @@ def run(config_path, out_dir, teams_path=None, allow=None, offline=False):
         if len(teams) < 3:
             quality.append("Fewer than three team states supplied; no missing account state was inferred")
         brief = {"metadata": main_model["metadata"], "allow": config["allow"], "assets": main_result["asset_metrics"],
+                 "driver_positions": positions,
                  "teams": main_lineups, "practice_adjustments": generator.adjustments,
                  "penalties": generator.events, "penalty_impacts": [{"event_id": r["event_id"], "status": r["status"], "changes": r.get("changes"), "reason": r.get("reason")} for r in impacts],
                  "news": data.get("news", []), "sources": sources.rows, "warnings": quality,
-                 "files": {name: str(output / name) for name in ("forecast.json", "component_probabilities.csv", "model_parameters.json", "grid_penalty_impacts.json")}}
+                 "files": {name: str(output / name) for name in ("forecast.json", "expected_driver_positions.csv", "component_probabilities.csv", "model_parameters.json", "grid_penalty_impacts.json")}}
         save_json(output / "advisor_input.json", brief)
         save_json(output / "data_quality.json", {"status": "complete", "warnings": quality})
         save_json(output / "run_config.json", config)

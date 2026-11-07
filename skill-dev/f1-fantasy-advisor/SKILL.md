@@ -185,10 +185,22 @@ legal lineups using `required_assets` versus `excluded_assets`, not an isolated
 driver score. Review the versioned rules each season. Final Fix/post-lock and
 season-wide chip allocation are not implemented by this prediction engine.
 
+Whenever reporting individual driver point forecasts, also show each driver's
+probability-weighted mean qualifying position, race starting position after
+penalties and classified race finishing position. Use
+`expected_driver_positions.csv` or `advisor_input.json`'s `driver_positions`;
+the conditional denominators and availability probabilities are documented in
+`references/forecast-inputs.md`. Position means may be fractional and are not
+guaranteed outcomes; never assign a fictitious last-place finish to an NC, DNS
+or DSQ. State the conditioning and label unavailable values N/A. On Sprint
+weekends, additionally show Sprint starting and finishing positions separately;
+the v1 model does not forecast a separate Sprint qualifying position.
+
 For a detailed forecast, follow the reporting format in
 `references/race-week-runbook.md` section 6: show every active driver's and
 constructor's current price, expected raw points, expected price change and
-price-fall probability, then both the score and budget options for each managed
+price-fall probability, plus each driver's qualifying, race start and finish
+position means, then both the score and budget options for each managed
 team. In Chinese, label `budget_best` as "保价/增值方案" and explain that it
 maximizes expected value growth within `--allow`, not guaranteed capital
 protection or minimum loss probability. Include complete rosters, 2x, transfers,

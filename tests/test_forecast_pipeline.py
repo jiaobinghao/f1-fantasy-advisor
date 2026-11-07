@@ -1,6 +1,7 @@
 """Behavioral checks for the v1 acquisition, forecast and budget pipeline."""
 
 import copy
+import csv
 import json
 import math
 import tempfile
@@ -31,6 +32,48 @@ def make_generator(format="standard", configure=None):
     rules = core.load_rules()
     grid_rules = core.load_json(pipeline.REFERENCES / "grid-rules-2026.json")
     return generate.Generator(data, config, rules, grid_rules, sources), teams
+
+
+class DriverPositionTests(unittest.TestCase):
+    def test_weighted_positions_condition_on_available_outcomes(self):
+        model = {
+            "assets": [{"asset_id": "d1", "type": "driver", "name": "Driver"},
+                       {"asset_id": "d2", "type": "driver", "name": "Inactive", "active": False},
+                       {"asset_id": "c1", "type": "constructor", "name": "Team"}],
+            "scenarios": [
+                {"probability": 0.25, "qualifying": {"d1": {"status": "classified", "position": 2}},
+                 "race": {"d1": {"status": "classified", "start_position": 4, "position": 3}},
+                 "sprint": {"d1": {"status": "classified", "start_position": 5, "position": 4}}},
+                {"probability": 0.5, "qualifying": {"d1": {"status": "classified", "position": 6}},
+                 "race": {"d1": {"status": "nc", "start_position": 8, "position": None}},
+                 "sprint": {"d1": {"status": "classified", "start_position": 7, "position": 8}}},
+                {"probability": 0.25, "qualifying": {"d1": {"status": "nc", "position": None}},
+                 "race": {"d1": {"status": "dns", "start_position": 9, "position": None}},
+                 "sprint": {"d1": {"status": "dsq", "start_position": 9, "position": None}}},
+            ],
+        }
+        row, = pipeline.driver_position_means(model)
+        self.assertAlmostEqual(row["mean_qualifying_position"], 14 / 3)
+        self.assertAlmostEqual(row["p_qualifying_position_available"], 0.75)
+        self.assertAlmostEqual(row["mean_race_start_position"], 20 / 3)
+        self.assertAlmostEqual(row["p_race_start_position_available"], 0.75)
+        self.assertEqual(row["mean_race_finish_position"], 3)
+        self.assertAlmostEqual(row["p_race_finish_position_available"], 0.25)
+        self.assertEqual(row["mean_sprint_start_position"], 7)
+        self.assertAlmostEqual(row["mean_sprint_finish_position"], 20 / 3)
+        self.assertAlmostEqual(row["p_sprint_finish_position_available"], 0.75)
+
+    def test_no_available_position_is_null_and_standard_has_no_sprint(self):
+        model = {"assets": [{"asset_id": "d1", "type": "driver", "name": "Driver"}],
+                 "scenarios": [{"probability": 1.0,
+                                "qualifying": {"d1": {"status": "nc", "position": None}},
+                                "race": {"d1": {"status": "dns", "start_position": None, "position": None}}}]}
+        row, = pipeline.driver_position_means(model)
+        self.assertIsNone(row["mean_qualifying_position"])
+        self.assertIsNone(row["mean_race_start_position"])
+        self.assertIsNone(row["mean_race_finish_position"])
+        self.assertEqual(row["p_race_finish_position_available"], 0)
+        self.assertNotIn("mean_sprint_start_position", row)
 
 
 class GridTests(unittest.TestCase):
@@ -637,8 +680,15 @@ class DataAndRunTests(unittest.TestCase):
                 self.assertEqual(audit["circuit_models"]["race"]["selected"]["method"], "generic_fallback")
                 self.assertTrue(audit["overtake_models"])
                 self.assertNotIn("conditional_overtakes", audit)
-                for name in ("advisor_input.json", "sources.json", "grid_penalty_impacts.json", "price_distributions.json", "run_manifest.json", "circuit_profiles.json"):
+                for name in ("advisor_input.json", "expected_driver_positions.csv", "sources.json", "grid_penalty_impacts.json", "price_distributions.json", "run_manifest.json", "circuit_profiles.json"):
                     self.assertTrue((root / "one" / name).is_file())
+                advisor = core.load_json(root / "one/advisor_input.json")
+                with (root / "one/expected_driver_positions.csv").open(newline="", encoding="utf-8") as handle:
+                    position_rows = list(csv.DictReader(handle))
+                self.assertEqual(len(position_rows), 6)
+                self.assertEqual(len(advisor["driver_positions"]), 6)
+                self.assertEqual("mean_sprint_start_position" in position_rows[0], format == "sprint")
+                self.assertEqual(advisor["driver_positions"], pipeline.driver_position_means(core.load_json(root / "one/forecast.json")))
                 with self.assertRaisesRegex(ValueError, "not empty"):
                     pipeline.run(config_path, root / "one", offline=True)
 
@@ -692,6 +742,8 @@ class DataAndRunTests(unittest.TestCase):
             pipeline.run(config_path, root / "run", offline=True)
             report = core.load_json(root / "run/grid_penalty_impacts.json")
             evaluation = core.load_json(root / "run/evaluation.json")
+            advisor = core.load_json(root / "run/advisor_input.json")
+            self.assertEqual(advisor["driver_positions"], pipeline.driver_position_means(core.load_json(root / "run/forecast.json")))
             for asset in evaluation["asset_metrics"]:
                 expected = sum(b["probability"]*b["assets"][asset["asset_id"]]["mu"] for b in report["branches"])
                 self.assertAlmostEqual(asset["mu"], expected)
